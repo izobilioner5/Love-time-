@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Love Time",
+    "slug": "love-time",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.izobilion.lovetime"
+    },
+    "android": {
+      "package": "com.izobilion.lovetime"
+    },
+    "plugins": ["expo-notifications"]
+  }
+}
