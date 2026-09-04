@@ -38,6 +38,14 @@ export default {
 };
 
 async function handleUpdate(update, env) {
+  const callback = update.callback_query;
+  if (callback?.data === 'love_task' && callback.message?.chat?.id) {
+    const chatId = String(callback.message.chat.id);
+    await sendMessage(env, chatId, randomTask(), taskKeyboard());
+    await answerCallback(env, callback.id);
+    return;
+  }
+
   const message = update.message;
   if (!message?.chat?.id) return;
 
@@ -145,6 +153,17 @@ function taskKeyboard() {
       { text: 'Получить задание любви', callback_data: 'love_task' },
     ]],
   };
+}
+
+async function answerCallback(env, callbackId) {
+  await fetch(
+    `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ callback_query_id: callbackId }),
+    }
+  );
 }
 
 async function sendMessage(env, chatId, text, replyMarkup) {
