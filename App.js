@@ -61,7 +61,11 @@ const serif = Platform.select({
 export default function App() {
   const [people, setPeople] = useState(() => readWebState('lovePeople', []));
   const [selected, setSelected] = useState('');
+  const [telegramByPerson, setTelegramByPerson] = useState(() =>
+    readWebState('loveTelegramByPerson', {})
+  );
   const [name, setName] = useState('');
+  const [telegram, setTelegram] = useState('');
   const [task, setTask] = useState('');
   const [completed, setCompleted] = useState(() => readWebState('loveCompleted', 0));
   const [enabled, setEnabled] = useState(false);
@@ -95,8 +99,13 @@ export default function App() {
 
   const addPerson = () => {
     const clean = name.trim();
+    const cleanTelegram = telegram.trim().replace(/^@/, '');
     if (!clean) {
       message('Добавь человека', 'Напиши его имя.');
+      return;
+    }
+    if (!cleanTelegram) {
+      message('Добавь Telegram', 'Напиши логин человека, например @anton.');
       return;
     }
     if (!people.includes(clean)) {
@@ -104,8 +113,12 @@ export default function App() {
       setPeople(next);
       saveWebState('lovePeople', next);
     }
+    const nextTelegram = { ...telegramByPerson, [clean]: cleanTelegram };
+    setTelegramByPerson(nextTelegram);
+    saveWebState('loveTelegramByPerson', nextTelegram);
     setSelected(clean);
     setName('');
+    setTelegram('');
     setTask('');
   };
 
@@ -113,6 +126,10 @@ export default function App() {
     const next = people.filter((item) => item !== person);
     setPeople(next);
     saveWebState('lovePeople', next);
+    const nextTelegram = { ...telegramByPerson };
+    delete nextTelegram[person];
+    setTelegramByPerson(nextTelegram);
+    saveWebState('loveTelegramByPerson', nextTelegram);
     if (selected === person) {
       setSelected('');
       setTask('');
@@ -130,16 +147,17 @@ export default function App() {
 
   const shareToTelegram = async () => {
     if (!task) return;
-    const text = `Love Time для ${selected} ♥\n\n${task}`;
-    const url =
-      'https://t.me/share/url?url=' +
-      encodeURIComponent('https://github.com/izobilioner5/Love-time-') +
-      '&text=' +
-      encodeURIComponent(text);
+    const username = telegramByPerson[selected];
+    if (!username) {
+      message('Нет Telegram-логина', 'Добавь этого человека заново вместе с его @логином.');
+      return;
+    }
+    const text = `Это твоё Love Time ♥\n\n${task}`;
+    const url = `https://t.me/${username}?text=${encodeURIComponent(text)}`;
     try {
       await Linking.openURL(url);
     } catch {
-      message('Не удалось открыть Telegram', 'Проверь, установлен ли Telegram.');
+      message('Не удалось открыть Telegram', 'Проверь логин и установлен ли Telegram.');
     }
   };
 
@@ -225,17 +243,32 @@ export default function App() {
           <Text style={styles.sectionLabel}>ВЫБЕРИ ЧЕЛОВЕКА</Text>
         </View>
 
-        <View style={styles.inputShell}>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            onSubmitEditing={addPerson}
-            placeholder="Введи имя"
-            placeholderTextColor="#897A70"
-            style={styles.input}
-          />
-          <Pressable onPress={addPerson} style={styles.addButton}>
-            <Text style={styles.addButtonText}>＋</Text>
+        <View style={styles.contactForm}>
+          <View style={styles.inputShell}>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder="Имя человека"
+              placeholderTextColor="#897A70"
+              style={styles.input}
+            />
+          </View>
+          <View style={styles.inputShell}>
+            <Text style={styles.atSign}>@</Text>
+            <TextInput
+              value={telegram}
+              onChangeText={setTelegram}
+              onSubmitEditing={addPerson}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="telegram_login"
+              placeholderTextColor="#897A70"
+              style={styles.telegramInput}
+            />
+          </View>
+          <Pressable onPress={addPerson} style={styles.addWideButton}>
+            <Text style={styles.addWideButtonText}>ДОБАВИТЬ ЧЕЛОВЕКА</Text>
+            <Text style={styles.addWideArrow}>→</Text>
           </Pressable>
         </View>
 
@@ -261,6 +294,7 @@ export default function App() {
                   ]}
                 >
                   {person}
+                  {telegramByPerson[person] ? `  ·  @${telegramByPerson[person]}` : ''}
                 </Text>
               </Pressable>
             ))}
@@ -399,6 +433,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1.6,
   },
+  contactForm: { gap: 8 },
   inputShell: {
     flexDirection: 'row',
     backgroundColor: '#F9F4EC',
@@ -412,6 +447,37 @@ const styles = StyleSheet.create({
     fontFamily: serif,
     fontSize: 18,
     paddingHorizontal: 16,
+  },
+  atSign: {
+    color: '#8C2F43',
+    fontFamily: serif,
+    fontSize: 18,
+    paddingLeft: 16,
+    alignSelf: 'center',
+  },
+  telegramInput: {
+    flex: 1,
+    color: '#2B2420',
+    fontSize: 16,
+    paddingHorizontal: 8,
+  },
+  addWideButton: {
+    minHeight: 54,
+    backgroundColor: '#2B2420',
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addWideButtonText: {
+    color: '#F9F4EC',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.3,
+  },
+  addWideArrow: {
+    color: '#E0A358',
+    fontSize: 22,
+    marginLeft: 'auto',
   },
   addButton: {
     width: 58,
