@@ -198,8 +198,7 @@ export default function App() {
 
         <Text style={styles.date}>{todayLabel}</Text>
         <Text style={styles.hero}>
-          Кому сегодня{'
-'}
+          Кому сегодня{"\n"}
           достанется твоя <Text style={styles.heroAccent}>любовь?</Text>
         </Text>
 
@@ -294,8 +293,7 @@ export default function App() {
         <View style={styles.bottomGrid}>
           <View style={styles.scoreBox}>
             <Text style={styles.score}>{String(completed).padStart(2, '0')}</Text>
-            <Text style={styles.scoreLabel}>ПРОЯВЛЕНИЙ{'
-'}ЛЮБВИ</Text>
+            <Text style={styles.scoreLabel}>ПРОЯВЛЕНИЙ{"\n"}ЛЮБВИ</Text>
           </View>
           <View style={styles.reminderBox}>
             <View>
