@@ -35,25 +35,22 @@ export default function App() {
 
     const permission = await Notifications.requestPermissionsAsync();
     if (permission.status !== 'granted') {
-      Alert.alert('Нужны уведомления', 'Разреши уведомления, чтобы Love Time мог напоминать тебе проявлять любовь.');
+      Alert.alert('Разреши уведомления ❤️', 'Love Time нужен доступ к уведомлениям.');
       return;
     }
 
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Love Time ❤️',
-        body: 'Сейчас время проявить любовь. Кому ты можешь её дать?',
+        body: 'Время любить. Прояви любовь прямо сейчас.',
         data: { loveTime: true },
         sound: true,
       },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: 12,
-        minute: 0,
-      },
+      trigger: { seconds: 10 },
     });
 
     setEnabled(true);
+    Alert.alert('Love Time включён ❤️', 'Тестовое уведомление придёт через 10 секунд. Сверни приложение.');
   };
 
   return (
@@ -62,84 +59,31 @@ export default function App() {
       <View style={styles.card}>
         <Text style={styles.heart}>❤️</Text>
         <Text style={styles.title}>Love Time</Text>
-        <Text style={styles.subtitle}>Одно напоминание. Один момент любви каждый день.</Text>
+        <Text style={styles.subtitle}>Время любить</Text>
 
         <View style={styles.row}>
           <View style={styles.copy}>
-            <Text style={styles.label}>Love Time включён</Text>
-            <Text style={styles.hint}>Каждый день в 12:00</Text>
+            <Text style={styles.label}>Напоминать мне</Text>
+            <Text style={styles.hint}>проявлять любовь каждый день</Text>
           </View>
           <Switch value={enabled} onValueChange={toggleLoveTime} />
         </View>
 
-        <Text style={styles.footer}>Любовь — это действие.</Text>
+        <Text style={styles.footer}>{enabled ? '❤️ Love Time включён' : 'Включи Love Time'}</Text>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#FFF8F8',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    padding: 28,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
-  },
-  heart: {
-    fontSize: 56,
-    textAlign: 'center',
-    marginBottom: 14,
-  },
-  title: {
-    fontSize: 38,
-    fontWeight: '800',
-    textAlign: 'center',
-    color: '#201A1A',
-  },
-  subtitle: {
-    fontSize: 17,
-    lineHeight: 25,
-    textAlign: 'center',
-    color: '#6B5E5E',
-    marginTop: 10,
-    marginBottom: 34,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFF2F4',
-    borderRadius: 20,
-    padding: 18,
-  },
-  copy: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  label: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#2B2020',
-  },
-  hint: {
-    fontSize: 14,
-    color: '#8C7777',
-    marginTop: 4,
-  },
-  footer: {
-    marginTop: 28,
-    textAlign: 'center',
-    color: '#A07777',
-    fontSize: 14,
-  },
+  screen: { flex: 1, backgroundColor: '#FFF7F8', justifyContent: 'center', padding: 24 },
+  card: { backgroundColor: '#FFFFFF', borderRadius: 30, padding: 30 },
+  heart: { fontSize: 70, textAlign: 'center' },
+  title: { fontSize: 40, fontWeight: '800', textAlign: 'center', marginTop: 15 },
+  subtitle: { fontSize: 20, textAlign: 'center', marginTop: 8, color: '#777' },
+  row: { marginTop: 45, padding: 20, borderRadius: 20, backgroundColor: '#FFF0F2', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  copy: { flex: 1, paddingRight: 12 },
+  label: { fontSize: 18, fontWeight: '700' },
+  hint: { fontSize: 13, color: '#777', marginTop: 4 },
+  footer: { textAlign: 'center', marginTop: 30, fontSize: 17 },
 });
