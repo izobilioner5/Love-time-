@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Linking,
   Platform,
   Pressable,
   SafeAreaView,
@@ -125,6 +126,21 @@ export default function App() {
     }
     const options = TASKS.map((create) => create(selected)).filter((item) => item !== task);
     setTask(options[Math.floor(Math.random() * options.length)]);
+  };
+
+  const shareToTelegram = async () => {
+    if (!task) return;
+    const text = `Love Time для ${selected} ♥\n\n${task}`;
+    const url =
+      'https://t.me/share/url?url=' +
+      encodeURIComponent('https://github.com/izobilioner5/Love-time-') +
+      '&text=' +
+      encodeURIComponent(text);
+    try {
+      await Linking.openURL(url);
+    } catch {
+      message('Не удалось открыть Telegram', 'Проверь, установлен ли Telegram.');
+    }
   };
 
   const completeTask = () => {
@@ -264,6 +280,10 @@ export default function App() {
             <>
               <Text style={styles.forPerson}>ДЛЯ {selected.toUpperCase()}</Text>
               <Text style={styles.taskText}>{task}</Text>
+              <Pressable onPress={shareToTelegram} style={styles.telegramButton}>
+                <Text style={styles.telegramIcon}>↗</Text>
+                <Text style={styles.telegramButtonText}>ОТПРАВИТЬ В TELEGRAM</Text>
+              </Pressable>
               <Pressable onPress={completeTask} style={styles.doneButton}>
                 <Text style={styles.doneButtonText}>Я СДЕЛАЛ ЭТО</Text>
                 <Text style={styles.arrow}>→</Text>
@@ -475,11 +495,30 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   arrowDark: { color: '#2B2420', fontSize: 22, marginLeft: 'auto' },
+  telegramButton: {
+    backgroundColor: '#E0A358',
+    marginTop: 25,
+    minHeight: 52,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  telegramIcon: {
+    color: '#2B2420',
+    fontSize: 20,
+    marginRight: 10,
+  },
+  telegramButtonText: {
+    color: '#2B2420',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.1,
+  },
   doneButton: {
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: '#A86573',
-    marginTop: 25,
+    marginTop: 12,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
