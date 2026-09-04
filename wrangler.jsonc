@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "love-time-bot",
+  "main": "telegram-worker.js",
+  "compatibility_date": "2026-09-04",
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "SUBSCRIBERS",
+      "id": "REPLACE_AFTER_CLOUDFLARE_CONNECTION"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
