@@ -26,7 +26,7 @@ if (Platform.OS !== 'web') {
 }
 
 const TASKS = [
-  (name) => `Напиши ${name}: «Я ценю тебя и рад, что ты есть в моей жизни» ❤️`,
+  (name) => `Напиши ${name}: «Я ценю тебя и рад, что ты есть в моей жизни»`,
   (name) => `Позвони ${name} без повода и спроси, как он себя чувствует.`,
   (name) => `Вспомни, за что ты благодарен ${name}, и скажи это прямо сегодня.`,
   (name) => `Сделай для ${name} маленький приятный сюрприз без ожидания ответа.`,
@@ -51,6 +51,12 @@ const saveWebState = (key, value) => {
   } catch {}
 };
 
+const serif = Platform.select({
+  ios: 'Georgia',
+  android: 'serif',
+  web: 'Georgia, Times New Roman, serif',
+});
+
 export default function App() {
   const [people, setPeople] = useState(() => readWebState('lovePeople', []));
   const [selected, setSelected] = useState('');
@@ -64,7 +70,6 @@ export default function App() {
       setEnabled(readWebState('loveTimeEnabled', false));
       return;
     }
-
     Notifications.getAllScheduledNotificationsAsync()
       .then((items) =>
         setEnabled(items.some((item) => item.content?.data?.loveTime === true))
@@ -75,6 +80,7 @@ export default function App() {
   const todayLabel = useMemo(
     () =>
       new Intl.DateTimeFormat('ru-RU', {
+        weekday: 'long',
         day: 'numeric',
         month: 'long',
       }).format(new Date()),
@@ -126,7 +132,7 @@ export default function App() {
     setCompleted(next);
     saveWebState('loveCompleted', next);
     setTask('');
-    message('Любовь проявлена ❤️', 'Ты сделал этот день теплее.');
+    message('Любовь проявлена', 'Ты сделал этот день теплее.');
   };
 
   const toggleLoveTime = async (value) => {
@@ -134,7 +140,7 @@ export default function App() {
       setEnabled(value);
       saveWebState('loveTimeEnabled', value);
       message(
-        value ? 'Напоминания включены ❤️' : 'Напоминания выключены',
+        value ? 'Напоминания включены' : 'Напоминания выключены',
         value
           ? 'Выбор сохранён. В установленной версии уведомление будет приходить каждый день.'
           : 'Выбор сохранён.'
@@ -158,13 +164,13 @@ export default function App() {
 
       const permission = await Notifications.requestPermissionsAsync();
       if (permission.status !== 'granted') {
-        message('Разреши уведомления ❤️', 'Love Time нужен доступ к уведомлениям.');
+        message('Разреши уведомления', 'Love Time нужен доступ к уведомлениям.');
         return;
       }
 
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Love Time ❤️',
+          title: 'Love Time',
           body: 'Выбери человека и прояви к нему любовь сегодня.',
           data: { loveTime: true },
           sound: true,
@@ -172,7 +178,7 @@ export default function App() {
         trigger: { seconds: 10 },
       });
       setEnabled(true);
-      message('Love Time включён ❤️', 'Тестовое уведомление придёт через 10 секунд.');
+      message('Love Time включён', 'Тестовое уведомление придёт через 10 секунд.');
     } catch {
       message('Не получилось включить', 'Попробуй ещё раз.');
     }
@@ -181,254 +187,356 @@ export default function App() {
   return (
     <SafeAreaView style={styles.screen}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.header}>
-          <Text style={styles.logo}>❤️</Text>
-          <View>
-            <Text style={styles.title}>Love Time</Text>
-            <Text style={styles.date}>{todayLabel}</Text>
+      <ScrollView contentContainerStyle={styles.page}>
+        <View style={styles.brandRow}>
+          <View style={styles.mark}>
+            <Text style={styles.markText}>♥</Text>
           </View>
-          <View style={styles.counter}>
-            <Text style={styles.counterNumber}>{completed}</Text>
-            <Text style={styles.counterLabel}>добрых дел</Text>
-          </View>
+          <Text style={styles.brand}>LOVE / TIME</Text>
+          <Text style={styles.issue}>DAILY 001</Text>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.step}>ШАГ 1</Text>
-          <Text style={styles.heading}>Кому подарим любовь?</Text>
+        <Text style={styles.date}>{todayLabel}</Text>
+        <Text style={styles.hero}>
+          Кому сегодня{'
+'}
+          достанется твоя <Text style={styles.heroAccent}>любовь?</Text>
+        </Text>
 
-          <View style={styles.inputRow}>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              onSubmitEditing={addPerson}
-              placeholder="Имя человека"
-              placeholderTextColor="#A88E92"
-              style={styles.input}
-            />
-            <Pressable onPress={addPerson} style={styles.addButton}>
-              <Text style={styles.addButtonText}>Добавить</Text>
-            </Pressable>
-          </View>
+        <View style={styles.rule} />
 
-          {people.length > 0 ? (
-            <View style={styles.people}>
-              {people.map((person) => (
-                <Pressable
-                  key={person}
-                  onPress={() => {
-                    setSelected(person);
-                    setTask('');
-                  }}
-                  onLongPress={() => removePerson(person)}
+        <View style={styles.sectionTop}>
+          <Text style={styles.sectionNumber}>01</Text>
+          <Text style={styles.sectionLabel}>ВЫБЕРИ ЧЕЛОВЕКА</Text>
+        </View>
+
+        <View style={styles.inputShell}>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            onSubmitEditing={addPerson}
+            placeholder="Введи имя"
+            placeholderTextColor="#897A70"
+            style={styles.input}
+          />
+          <Pressable onPress={addPerson} style={styles.addButton}>
+            <Text style={styles.addButtonText}>＋</Text>
+          </Pressable>
+        </View>
+
+        {people.length ? (
+          <View style={styles.people}>
+            {people.map((person) => (
+              <Pressable
+                key={person}
+                onPress={() => {
+                  setSelected(person);
+                  setTask('');
+                }}
+                onLongPress={() => removePerson(person)}
+                style={[
+                  styles.person,
+                  selected === person && styles.personSelected,
+                ]}
+              >
+                <Text
                   style={[
-                    styles.person,
-                    selected === person && styles.personSelected,
+                    styles.personText,
+                    selected === person && styles.personTextSelected,
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.personText,
-                      selected === person && styles.personTextSelected,
-                    ]}
-                  >
-                    {person}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.empty}>Добавь первого близкого человека</Text>
-          )}
-        </View>
+                  {person}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.empty}>Здесь появятся близкие тебе люди</Text>
+        )}
 
-        <View style={[styles.card, !selected && styles.cardMuted]}>
-          <Text style={styles.step}>ШАГ 2</Text>
-          <Text style={styles.heading}>
-            {selected ? `Задание для ${selected}` : 'Выбери человека'}
-          </Text>
+        <View style={styles.ritualCard}>
+          <View style={styles.ritualTop}>
+            <Text style={styles.ritualNumber}>02</Text>
+            <Text style={styles.ritualLabel}>СЕГОДНЯШНИЙ РИТУАЛ</Text>
+            <Text style={styles.ritualHeart}>♥</Text>
+          </View>
 
           {task ? (
             <>
-              <View style={styles.taskBox}>
-                <Text style={styles.taskText}>{task}</Text>
-              </View>
+              <Text style={styles.forPerson}>ДЛЯ {selected.toUpperCase()}</Text>
+              <Text style={styles.taskText}>{task}</Text>
               <Pressable onPress={completeTask} style={styles.doneButton}>
-                <Text style={styles.doneButtonText}>✓ Выполнено</Text>
+                <Text style={styles.doneButtonText}>Я СДЕЛАЛ ЭТО</Text>
+                <Text style={styles.arrow}>→</Text>
               </Pressable>
-              <Pressable onPress={getTask} style={styles.linkButton}>
-                <Text style={styles.linkText}>Другое задание</Text>
+              <Pressable onPress={getTask}>
+                <Text style={styles.another}>выбрать другое задание</Text>
               </Pressable>
             </>
           ) : (
-            <Pressable
-              onPress={getTask}
-              style={[styles.mainButton, !selected && styles.disabledButton]}
-            >
-              <Text style={styles.mainButtonText}>Получить задание любви</Text>
-            </Pressable>
+            <>
+              <Text style={styles.cardQuote}>
+                {selected
+                  ? `Маленькое действие для ${selected} может изменить весь день.`
+                  : 'Сначала выбери того, кому хочешь подарить немного тепла.'}
+              </Text>
+              <Pressable
+                onPress={getTask}
+                style={[styles.getButton, !selected && styles.getButtonDisabled]}
+              >
+                <Text style={styles.getButtonText}>ПОЛУЧИТЬ ЗАДАНИЕ</Text>
+                <Text style={styles.arrowDark}>→</Text>
+              </Pressable>
+            </>
           )}
         </View>
 
-        <View style={styles.reminder}>
-          <View style={styles.reminderCopy}>
-            <Text style={styles.reminderTitle}>Ежедневное напоминание</Text>
-            <Text style={styles.reminderHint}>не забывать проявлять любовь</Text>
+        <View style={styles.bottomGrid}>
+          <View style={styles.scoreBox}>
+            <Text style={styles.score}>{String(completed).padStart(2, '0')}</Text>
+            <Text style={styles.scoreLabel}>ПРОЯВЛЕНИЙ{'
+'}ЛЮБВИ</Text>
           </View>
-          <Switch
-            value={enabled}
-            onValueChange={toggleLoveTime}
-            trackColor={{ false: '#C9C0C2', true: '#FF7185' }}
-          />
+          <View style={styles.reminderBox}>
+            <View>
+              <Text style={styles.reminderTitle}>Напоминать</Text>
+              <Text style={styles.reminderHint}>каждый день</Text>
+            </View>
+            <Switch
+              value={enabled}
+              onValueChange={toggleLoveTime}
+              trackColor={{ false: '#CFC2B7', true: '#692B3A' }}
+              thumbColor="#F7F0E6"
+            />
+          </View>
         </View>
 
-        <Text style={styles.tip}>Чтобы удалить имя, нажми на него и подержи</Text>
+        <Text style={styles.footer}>LOVE IS A VERB · ЛЮБОВЬ — ЭТО ДЕЙСТВИЕ</Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#FFF7F8' },
-  scroll: {
+  screen: { flex: 1, backgroundColor: '#F1E8DC' },
+  page: {
     flexGrow: 1,
     width: '100%',
     maxWidth: 620,
     alignSelf: 'center',
-    padding: 20,
-    paddingTop: 34,
-    paddingBottom: 40,
+    paddingHorizontal: 22,
+    paddingTop: 28,
+    paddingBottom: 42,
   },
-  header: {
-    flexDirection: 'row',
+  brandRow: { flexDirection: 'row', alignItems: 'center' },
+  mark: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#692B3A',
     alignItems: 'center',
-    marginBottom: 24,
+    justifyContent: 'center',
   },
-  logo: { fontSize: 40, marginRight: 12 },
-  title: { fontSize: 28, fontWeight: '800', color: '#27181B' },
-  date: { color: '#927B80', marginTop: 2 },
-  counter: {
-    marginLeft: 'auto',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-  },
-  counterNumber: { color: '#E9435C', fontSize: 20, fontWeight: '800' },
-  counterLabel: { color: '#927B80', fontSize: 10 },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 16,
-  },
-  cardMuted: { opacity: 0.82 },
-  step: {
-    color: '#E9435C',
-    fontSize: 11,
+  markText: { color: '#F1E8DC', fontSize: 14 },
+  brand: {
+    color: '#2B2420',
+    marginLeft: 10,
+    fontSize: 12,
     fontWeight: '800',
+    letterSpacing: 2.1,
+  },
+  issue: {
+    color: '#76685F',
+    marginLeft: 'auto',
+    fontSize: 9,
     letterSpacing: 1.2,
   },
-  heading: {
-    color: '#27181B',
-    fontSize: 22,
-    fontWeight: '750',
-    marginTop: 6,
-    marginBottom: 18,
+  date: {
+    color: '#76685F',
+    fontSize: 12,
+    marginTop: 38,
+    textTransform: 'uppercase',
+    letterSpacing: 1.1,
   },
-  inputRow: { flexDirection: 'row', gap: 8 },
+  hero: {
+    color: '#2B2420',
+    fontFamily: serif,
+    fontSize: 42,
+    lineHeight: 47,
+    marginTop: 10,
+    letterSpacing: -1,
+  },
+  heroAccent: { color: '#8C2F43', fontStyle: 'italic' },
+  rule: { height: 1, backgroundColor: '#B8A99D', marginVertical: 26 },
+  sectionTop: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 12 },
+  sectionNumber: {
+    color: '#8C2F43',
+    fontFamily: serif,
+    fontSize: 24,
+    marginRight: 10,
+  },
+  sectionLabel: {
+    color: '#2B2420',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.6,
+  },
+  inputShell: {
+    flexDirection: 'row',
+    backgroundColor: '#F9F4EC',
+    borderWidth: 1,
+    borderColor: '#C6B7AB',
+    minHeight: 58,
+  },
   input: {
     flex: 1,
-    backgroundColor: '#FFF2F4',
-    borderRadius: 14,
-    paddingHorizontal: 15,
-    paddingVertical: 13,
-    color: '#27181B',
-    fontSize: 16,
-    outlineStyle: 'none',
+    color: '#2B2420',
+    fontFamily: serif,
+    fontSize: 18,
+    paddingHorizontal: 16,
   },
   addButton: {
+    width: 58,
+    backgroundColor: '#2B2420',
+    alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#27181B',
-    borderRadius: 14,
-    paddingHorizontal: 15,
   },
-  addButtonText: { color: '#FFFFFF', fontWeight: '700' },
-  people: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 16,
-  },
+  addButtonText: { color: '#F9F4EC', fontSize: 24, fontWeight: '300' },
+  people: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 13 },
   person: {
     borderWidth: 1,
-    borderColor: '#F3C9D0',
-    borderRadius: 18,
+    borderColor: '#9C8C80',
+    borderRadius: 99,
     paddingVertical: 8,
     paddingHorizontal: 14,
   },
-  personSelected: { backgroundColor: '#E9435C', borderColor: '#E9435C' },
-  personText: { color: '#6B454C', fontWeight: '600' },
-  personTextSelected: { color: '#FFFFFF' },
-  empty: { color: '#A88E92', textAlign: 'center', marginTop: 18 },
-  mainButton: {
-    backgroundColor: '#E9435C',
-    borderRadius: 16,
-    paddingVertical: 16,
+  personSelected: { backgroundColor: '#8C2F43', borderColor: '#8C2F43' },
+  personText: { color: '#4E433C', fontSize: 13 },
+  personTextSelected: { color: '#FFF8EF' },
+  empty: {
+    color: '#897A70',
+    fontFamily: serif,
+    fontStyle: 'italic',
+    fontSize: 13,
+    marginTop: 12,
   },
-  disabledButton: { backgroundColor: '#D8CACE' },
-  mainButtonText: {
-    color: '#FFFFFF',
-    textAlign: 'center',
-    fontSize: 16,
+  ritualCard: {
+    backgroundColor: '#692B3A',
+    marginTop: 28,
+    padding: 22,
+    minHeight: 262,
+  },
+  ritualTop: { flexDirection: 'row', alignItems: 'baseline' },
+  ritualNumber: {
+    color: '#E0A358',
+    fontFamily: serif,
+    fontSize: 25,
+    marginRight: 10,
+  },
+  ritualLabel: {
+    color: '#EEDDD4',
+    fontSize: 9,
     fontWeight: '800',
+    letterSpacing: 1.6,
   },
-  taskBox: {
-    backgroundColor: '#FFF2F4',
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 14,
+  ritualHeart: { color: '#E0A358', marginLeft: 'auto', fontSize: 19 },
+  forPerson: {
+    color: '#E0A358',
+    marginTop: 29,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  cardQuote: {
+    color: '#FAF1E8',
+    fontFamily: serif,
+    fontSize: 25,
+    lineHeight: 32,
+    marginTop: 31,
   },
   taskText: {
-    color: '#5B2630',
-    textAlign: 'center',
-    fontSize: 18,
-    lineHeight: 26,
-    fontWeight: '600',
+    color: '#FAF1E8',
+    fontFamily: serif,
+    fontSize: 24,
+    lineHeight: 31,
+    marginTop: 9,
   },
-  doneButton: {
-    backgroundColor: '#E9435C',
-    borderRadius: 16,
-    paddingVertical: 15,
-  },
-  doneButtonText: {
-    color: '#FFFFFF',
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  linkButton: { paddingVertical: 13 },
-  linkText: {
-    textAlign: 'center',
-    color: '#A64151',
-    fontWeight: '600',
-  },
-  reminder: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 18,
+  getButton: {
+    backgroundColor: '#E0A358',
+    marginTop: 'auto',
+    minHeight: 52,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  reminderCopy: { flex: 1, paddingRight: 10 },
-  reminderTitle: { color: '#27181B', fontSize: 16, fontWeight: '700' },
-  reminderHint: { color: '#927B80', fontSize: 12, marginTop: 3 },
-  tip: {
-    color: '#B19A9F',
+  getButtonDisabled: { opacity: 0.45 },
+  getButtonText: {
+    color: '#2B2420',
     fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+  },
+  arrowDark: { color: '#2B2420', fontSize: 22, marginLeft: 'auto' },
+  doneButton: {
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#A86573',
+    marginTop: 25,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    color: '#E0A358',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1.3,
+  },
+  arrow: { color: '#E0A358', fontSize: 22, marginLeft: 'auto' },
+  another: {
+    color: '#D8B9BE',
+    fontFamily: serif,
+    fontStyle: 'italic',
     textAlign: 'center',
-    marginTop: 14,
+    paddingTop: 13,
+  },
+  bottomGrid: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  scoreBox: {
+    width: 116,
+    backgroundColor: '#E0A358',
+    padding: 15,
+    minHeight: 98,
+  },
+  score: {
+    color: '#2B2420',
+    fontFamily: serif,
+    fontSize: 35,
+    lineHeight: 37,
+  },
+  scoreLabel: {
+    color: '#2B2420',
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 1.1,
+  },
+  reminderBox: {
+    flex: 1,
+    backgroundColor: '#F9F4EC',
+    borderWidth: 1,
+    borderColor: '#C6B7AB',
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  reminderTitle: { color: '#2B2420', fontFamily: serif, fontSize: 17 },
+  reminderHint: { color: '#897A70', fontSize: 11, marginTop: 3 },
+  footer: {
+    color: '#76685F',
+    textAlign: 'center',
+    marginTop: 25,
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 1.3,
   },
 });
