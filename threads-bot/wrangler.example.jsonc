@@ -1,0 +1,23 @@
+{
+  "name": "izobilion-threads-bot",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-09",
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "THREADS_QUEUE",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+    }
+  ],
+  "vars": {
+    "DRY_RUN": "true",
+    "AUTO_PUBLISH": "false",
+    "MIN_POST_INTERVAL_MINUTES": "60",
+    "THREADS_API_BASE_URL": "https://graph.threads.net/v1.0"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
