@@ -1,0 +1,42 @@
+name: SOULUME Threads Publish
+
+on:
+  push:
+    branches:
+      - soulume-threads-bot
+    paths:
+      - "soulume-threads-bot/current_post.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: soulume-threads-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish current SOULUME post to Threads
+        env:
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+        run: python3 soulume-threads-bot/publisher.py
+
+      - name: Save publication history
+        if: success()
+        run: |
+          git config user.name "soulume-threads-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add soulume-threads-bot/history.jsonl soulume-threads-bot/last_result.json
+          if git diff --cached --quiet; then
+            echo "No history changes to commit."
+          else
+            git commit -m "Record SOULUME Threads publication"
+            git push
+          fi
