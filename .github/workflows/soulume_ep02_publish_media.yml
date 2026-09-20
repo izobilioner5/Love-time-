@@ -1,0 +1,75 @@
+name: SOULUME EP02 Publish Media
+
+on:
+  push:
+    branches: [ soulume-upload-media ]
+    paths:
+      - '.github/workflows/soulume_ep02_publish_media.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: soulume-upload-media
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Download segments
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work
+          urls=(
+            "https://gcdn.picsart.com/media-engine/d5e8e828-d162-47a8-9873-2c30323d6633.mp4"
+            "https://gcdn.picsart.com/media-engine/95606ef1-1d34-4a8e-9832-b98c928cd232.mp4"
+            "https://gcdn.picsart.com/media-engine/3b8bd2a1-9349-4c39-afd4-3d3d0d13963a.mp4"
+            "https://gcdn.picsart.com/media-engine/5065bb3d-9a2b-4d3e-9353-119880998eed.mp4"
+            "https://gcdn.picsart.com/media-engine/79af332d-0bac-4e2b-8584-ad68629f7061.mp4"
+            "https://gcdn.picsart.com/media-engine/42102631-7888-4483-bbac-9bb42b538f51.mp4"
+            "https://gcdn.picsart.com/media-engine/513f438f-e2f1-4c9f-9968-64ac37aa3819.mp4"
+            "https://gcdn.picsart.com/media-engine/5284eb6d-c57a-465b-bab0-19c4b8b79928.mp4"
+          )
+          i=1
+          for u in "${urls[@]}"; do
+            f=$(printf "work/%02d.mp4" "$i")
+            curl -L --fail --retry 4 --retry-delay 2 "$u" -o "$f"
+            i=$((i+1))
+          done
+          : > work/concat.txt
+          for f in work/0*.mp4; do
+            echo "file '$GITHUB_WORKSPACE/$f'" >> work/concat.txt
+          done
+
+      - name: Build upload master with end fade
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p publish-temp
+          ffmpeg -hide_banner -y -f concat -safe 0 -i work/concat.txt \
+            -vf "scale=1280:720:flags=lanczos" \
+            -c:v libx264 -preset veryfast -crf 30 -tune stillimage -pix_fmt yuv420p \
+            -af "afade=t=out:st=3599.818667:d=12" \
+            -c:a aac -b:a 160k -ar 48000 -ac 2 \
+            -movflags +faststart \
+            publish-temp/SOULUME_EP02_BALI_FINAL_PUBLISH.mp4
+          ffprobe -v error -show_entries format=duration:stream=codec_name,codec_type,width,height,sample_rate,channels -of json publish-temp/SOULUME_EP02_BALI_FINAL_PUBLISH.mp4
+          bytes=$(stat -c%s publish-temp/SOULUME_EP02_BALI_FINAL_PUBLISH.mp4)
+          echo "size_bytes=$bytes"
+          test "$bytes" -lt 99000000
+
+      - name: Commit media
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "SOULUME build"
+          git config user.email "actions@users.noreply.github.com"
+          git add publish-temp/SOULUME_EP02_BALI_FINAL_PUBLISH.mp4
+          git commit -m "Add temporary SOULUME EP02 publish media"
+          git push origin soulume-upload-media
