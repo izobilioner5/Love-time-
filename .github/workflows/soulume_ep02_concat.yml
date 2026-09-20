@@ -1,0 +1,74 @@
+name: SOULUME EP02 Finalize
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/soulume_ep02_concat.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download segments
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          urls=(
+            "https://gcdn.picsart.com/media-engine/d5e8e828-d162-47a8-9873-2c30323d6633.mp4"
+            "https://gcdn.picsart.com/media-engine/95606ef1-1d34-4a8e-9832-b98c928cd232.mp4"
+            "https://gcdn.picsart.com/media-engine/3b8bd2a1-9349-4c39-afd4-3d3d0d13963a.mp4"
+            "https://gcdn.picsart.com/media-engine/5065bb3d-9a2b-4d3e-9353-119880998eed.mp4"
+            "https://gcdn.picsart.com/media-engine/79af332d-0bac-4e2b-8584-ad68629f7061.mp4"
+            "https://gcdn.picsart.com/media-engine/42102631-7888-4483-bbac-9bb42b538f51.mp4"
+            "https://gcdn.picsart.com/media-engine/513f438f-e2f1-4c9f-9968-64ac37aa3819.mp4"
+            "https://gcdn.picsart.com/media-engine/5284eb6d-c57a-465b-bab0-19c4b8b79928.mp4"
+          )
+          for i in ${!urls[@]}; do
+            n=$(printf "%02d" $((i+1)))
+            curl -fL --retry 4 --retry-delay 2 "${urls[$i]}" -o "build/seg${n}.mp4"
+          done
+          ffprobe -v error -show_entries format=duration -of csv=p=0 build/seg01.mp4
+          ffprobe -v error -show_entries format=duration -of csv=p=0 build/seg08.mp4
+
+      - name: Trim last segment and concat losslessly
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffmpeg -y -i build/seg08.mp4 -t 240 -c copy build/seg08_trim.mp4
+          cat > build/list.txt <<'EOF'
+          file 'seg01.mp4'
+          file 'seg02.mp4'
+          file 'seg03.mp4'
+          file 'seg04.mp4'
+          file 'seg05.mp4'
+          file 'seg06.mp4'
+          file 'seg07.mp4'
+          file 'seg08_trim.mp4'
+          EOF
+          cd build
+          ffmpeg -y -f concat -safe 0 -i list.txt -c copy SOULUME_EP02_BALI_FINAL_MASTER.mp4
+          ffprobe -v error -show_entries format=duration:stream=codec_name,codec_type,channels,width,height -of json SOULUME_EP02_BALI_FINAL_MASTER.mp4 > ffprobe.json
+          ffmpeg -hide_banner -i SOULUME_EP02_BALI_FINAL_MASTER.mp4 -af silencedetect=noise=-45dB:d=2 -f null - 2> silence.log || true
+          cat ffprobe.json
+          cat silence.log
+
+      - name: Upload final master
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOULUME_EP02_BALI_FINAL_MASTER
+          path: |
+            build/SOULUME_EP02_BALI_FINAL_MASTER.mp4
+            build/ffprobe.json
+            build/silence.log
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
