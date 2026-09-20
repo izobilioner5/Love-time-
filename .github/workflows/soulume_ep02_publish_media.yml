@@ -54,9 +54,9 @@ jobs:
           mkdir -p publish-temp
           ffmpeg -hide_banner -y -f concat -safe 0 -i work/concat.txt \
             -vf "scale=1280:720:flags=lanczos" \
-            -c:v libx264 -preset veryfast -crf 30 -tune stillimage -pix_fmt yuv420p \
+            -c:v libx264 -preset veryfast -crf 32 -tune stillimage -pix_fmt yuv420p \
             -af "afade=t=out:st=3599.818667:d=12" \
-            -c:a aac -b:a 160k -ar 48000 -ac 2 \
+            -c:a aac -b:a 128k -ar 48000 -ac 2 \
             -movflags +faststart \
             publish-temp/SOULUME_EP02_BALI_FINAL_PUBLISH.mp4
           ffprobe -v error -show_entries format=duration:stream=codec_name,codec_type,width,height,sample_rate,channels -of json publish-temp/SOULUME_EP02_BALI_FINAL_PUBLISH.mp4
