@@ -1,0 +1,99 @@
+name: SOULUME Episode 02 Render
+
+on:
+  push:
+    branches:
+      - soulume-render-temp
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Download rendered segments
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work
+          urls=(
+            "https://gcdn.picsart.com/media-engine/d5e8e828-d162-47a8-9873-2c30323d6633.mp4"
+            "https://gcdn.picsart.com/media-engine/95606ef1-1d34-4a8e-9832-b98c928cd232.mp4"
+            "https://gcdn.picsart.com/media-engine/3b8bd2a1-9349-4c39-afd4-3d3d0d13963a.mp4"
+            "https://gcdn.picsart.com/media-engine/5065bb3d-9a2b-4d3e-9353-119880998eed.mp4"
+            "https://gcdn.picsart.com/media-engine/79af332d-0bac-4e2b-8584-ad68629f7061.mp4"
+            "https://gcdn.picsart.com/media-engine/42102631-7888-4483-bbac-9bb42b538f51.mp4"
+            "https://gcdn.picsart.com/media-engine/513f438f-e2f1-4c9f-9968-64ac37aa3819.mp4"
+            "https://gcdn.picsart.com/media-engine/5284eb6d-c57a-465b-bab0-19c4b8b79928.mp4"
+          )
+          i=1
+          for u in "${urls[@]}"; do
+            f=$(printf "work/%02d.mp4" "$i")
+            curl -L --fail --retry 4 --retry-delay 2 "$u" -o "$f"
+            ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$f"
+            i=$((i+1))
+          done
+
+      - name: Concatenate and re-encode final master
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > work/concat.txt
+          for f in work/0*.mp4; do
+            echo "file '$GITHUB_WORKSPACE/$f'" >> work/concat.txt
+          done
+          ffmpeg -hide_banner -y -f concat -safe 0 -i work/concat.txt \
+            -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p \
+            -c:a aac -b:a 192k -ar 48000 -ac 2 \
+            -movflags +faststart \
+            work/SOULUME_EP02_BALI_FINAL_MASTER.mp4
+
+      - name: Verify master
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffprobe -v error -show_streams -show_format work/SOULUME_EP02_BALI_FINAL_MASTER.mp4 > work/ffprobe.txt
+          ffmpeg -hide_banner -i work/SOULUME_EP02_BALI_FINAL_MASTER.mp4 \
+            -af silencedetect=noise=-45dB:d=2 -f null - 2> work/silence.log || true
+          ffmpeg -hide_banner -i work/SOULUME_EP02_BALI_FINAL_MASTER.mp4 \
+            -af volumedetect -f null - 2> work/volume.log || true
+          grep -E "silence_(start|end|duration)" work/silence.log || true
+          grep -E "mean_volume|max_volume" work/volume.log || true
+
+      - name: Create 5 QA cuts from actual final master
+        shell: bash
+        run: |
+          set -euo pipefail
+          for spec in "0 qa01" "787 qa02" "1669 qa03" "2612 qa04" "3540 qa05"; do
+            set -- $spec
+            ffmpeg -hide_banner -y -ss "$1" -i work/SOULUME_EP02_BALI_FINAL_MASTER.mp4 -t 45 \
+              -c:v libx264 -preset ultrafast -crf 22 -c:a aac -b:a 160k "work/$2.mp4"
+          done
+
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd work
+          zip -9 SOULUME_EP02_QA_AND_LOGS.zip qa01.mp4 qa02.mp4 qa03.mp4 qa04.mp4 qa05.mp4 ffprobe.txt silence.log volume.log
+
+      - name: Upload master artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOULUME_EP02_BALI_FINAL_MASTER
+          path: work/SOULUME_EP02_BALI_FINAL_MASTER.mp4
+          compression-level: 0
+          retention-days: 1
+
+      - name: Upload QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOULUME_EP02_QA_AND_LOGS
+          path: work/SOULUME_EP02_QA_AND_LOGS.zip
+          compression-level: 0
+          retention-days: 1
