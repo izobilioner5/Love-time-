@@ -66,3 +66,15 @@ Required before public:
 
 ## Failure policy
 Never claim success from a scheduled job alone. Verify final file and public URL. Never publish a known-corrupt/noise-only/wrong-version file.
+
+
+## Analytics source hierarchy
+Primary direct analytics source: Windsor.ai YouTube connector (connected account 41791). Use it for video views, estimated minutes watched, average view duration, traffic source, subscribers gained/lost, shares, comments, likes and video metadata. Metricool is auxiliary for publishing/planning and can provide per-video watch minutes, average view duration, traffic source and channel evolution.
+
+Important limitation: the currently exposed Windsor.ai YouTube field catalog does not expose YouTube impression CTR. Metricool's current YouTube metric catalog also does not expose organic thumbnail impressions/CTR. Treat CTR/impressions as a YouTube Studio/browser-only metric unless a connector later exposes it; do not invent or estimate it.
+
+Feedback cadence after publication:
+- 24h: early packaging/distribution read.
+- 72h: initial content/listening-job read.
+- 7d: comparative decision.
+Every review ends with one primary bottleneck and one next experiment.
