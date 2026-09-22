@@ -68,8 +68,10 @@ jobs:
         run: |
           set -euo pipefail
           TAG="soulume-ep04-transport-1"
-          gh release delete "$TAG" -y --cleanup-tag >/dev/null 2>&1 || true
+          gh release delete "$TAG" -y --cleanup-tag --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || true
           gh release create "$TAG" parts/EP04_SEG_*.mp4 \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
             --title "SOULUME EP04 transport segments" \
             --notes "Temporary lossless transport segments from verified EP04 4K master. Reassemble in numeric order. Source SHA256 a9d97981a49fb4b482f22562927e2224ed6cf44068d2faadcef3bece677b5049." \
             --prerelease
