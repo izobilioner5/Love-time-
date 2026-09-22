@@ -1,0 +1,75 @@
+name: SOULUME EP04 Transport Segments
+
+on:
+  push:
+    branches: [soulume-ep04-render]
+    paths:
+      - .github/workflows/ep04_transport_segments.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Download verified final master artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work parts
+          curl -L --fail --retry 5 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/10708300363/zip" \
+            -o work/final.zip
+          unzip -p work/final.zip SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4 > work/master.mp4
+          test -s work/master.mp4
+          echo "a9d97981a49fb4b482f22562927e2224ed6cf44068d2faadcef3bece677b5049  work/master.mp4" | sha256sum -c -
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height -of json work/master.mp4
+
+      - name: Split master into valid MP4 transport segments without re-encoding
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffmpeg -hide_banner -loglevel warning -y -i work/master.mp4 \
+            -map 0:v:0 -map 0:a:0 -c copy \
+            -f segment -segment_time 1800 -reset_timestamps 1 \
+            parts/EP04_SEG_%02d.mp4
+          count=$(find parts -maxdepth 1 -type f -name 'EP04_SEG_*.mp4' | wc -l)
+          echo "SEGMENT_COUNT=$count"
+          test "$count" -ge 11
+          python3 - <<'PY'
+          import glob,subprocess,json,os
+          total=0.0
+          for p in sorted(glob.glob("parts/EP04_SEG_*.mp4")):
+              raw=subprocess.check_output(["ffprobe","-v","error","-show_entries","format=duration,size","-show_entries","stream=codec_name,width,height","-of","json",p],text=True)
+              d=json.loads(raw)
+              dur=float(d["format"]["duration"]); total+=dur
+              vs=[s for s in d["streams"] if s.get("width")]
+              assert vs and int(vs[0]["width"])==3840 and int(vs[0]["height"])==2160
+              print(os.path.basename(p), "duration", dur, "size", d["format"]["size"])
+          print("SUM_DURATION", total)
+          assert abs(total-21355)<5, total
+          PY
+
+      - name: Create temporary public transport release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="soulume-ep04-transport-1"
+          gh release delete "$TAG" -y --cleanup-tag >/dev/null 2>&1 || true
+          gh release create "$TAG" parts/EP04_SEG_*.mp4 \
+            --title "SOULUME EP04 transport segments" \
+            --notes "Temporary lossless transport segments from verified EP04 4K master. Reassemble in numeric order. Source SHA256 a9d97981a49fb4b482f22562927e2224ed6cf44068d2faadcef3bece677b5049." \
+            --prerelease
