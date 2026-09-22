@@ -1,0 +1,83 @@
+name: SOULUME EP04 Metricool Delivery 4K
+
+on:
+  push:
+    branches:
+      - soulume-ep04-render
+    paths:
+      - .github/workflows/ep04_metricool_delivery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  delivery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Download verified final master
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work out
+          curl -L --fail --retry 5 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/10708300363/zip" \
+            -o work/final.zip
+          unzip -p work/final.zip SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4 > work/source.mp4
+          rm -f work/final.zip
+          ffprobe -v error -show_entries format=duration -show_entries stream=codec_type,width,height,sample_rate,channels -of json work/source.mp4 > out/source_probe.json
+
+      - name: Build under-500MB 4K delivery master
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffmpeg -hide_banner -loglevel error -y \
+            -i work/source.mp4 \
+            -map 0:v:0 -map 0:a:0 \
+            -c:v libx265 -preset ultrafast -tag:v hvc1 \
+            -b:v 102k -maxrate 135k -bufsize 270k \
+            -x265-params "keyint=240:min-keyint=24:scenecut=1" \
+            -c:a aac -b:a 72k -ar 48000 -ac 2 \
+            -movflags +faststart \
+            out/SOULUME_EP04_NEW_ZEALAND_5H55M55S_METRICOOL_4K.mp4
+
+      - name: Verify delivery
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffprobe -v error -show_streams -show_format -of json out/SOULUME_EP04_NEW_ZEALAND_5H55M55S_METRICOOL_4K.mp4 > out/delivery_probe.json
+          python3 - <<'PY'
+          import json, os
+          p="out/SOULUME_EP04_NEW_ZEALAND_5H55M55S_METRICOOL_4K.mp4"
+          d=json.load(open("out/delivery_probe.json"))
+          dur=float(d["format"]["duration"])
+          v=next(s for s in d["streams"] if s["codec_type"]=="video")
+          a=next(s for s in d["streams"] if s["codec_type"]=="audio")
+          size=os.path.getsize(p)
+          assert abs(dur-21355) < 1.5, dur
+          assert int(v["width"])==3840 and int(v["height"])==2160, (v["width"],v["height"])
+          assert int(a["sample_rate"])==48000
+          assert size < 495_000_000, size
+          print("DELIVERY_OK",dur,size,v["codec_name"],a["codec_name"])
+          PY
+          sha256sum out/SOULUME_EP04_NEW_ZEALAND_5H55M55S_METRICOOL_4K.mp4 > out/SHA256.txt
+
+      - name: Upload Metricool delivery
+        uses: actions/upload-artifact@v4
+        with:
+          name: EP04_METRICOOL_4K_UNDER500
+          path: |
+            out/SOULUME_EP04_NEW_ZEALAND_5H55M55S_METRICOOL_4K.mp4
+            out/delivery_probe.json
+            out/SHA256.txt
+          compression-level: 0
+          retention-days: 2
