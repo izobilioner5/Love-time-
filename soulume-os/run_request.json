@@ -1,18 +1,13 @@
 {
-  "episode": 99,
-  "location": "PIPELINE TEST",
-  "observations": [
-    "test image continuity",
-    "test audio generation",
-    "test automated handoff"
-  ],
-  "realization": "the system can move from request to verified media without manual editing",
-  "music_direction": "very soft low-event ambient test",
+  "episode": 98,
+  "location": "SHORTS PIPELINE TEST",
+  "observations": ["test long-form render", "test vertical cutdowns", "test multi-asset release"],
+  "realization": "one episode becomes a distribution cluster automatically",
+  "music_direction": "soft low-event ambient technical test",
   "lore_seed": "none — technical test",
-  "duration_seconds": 30,
-  "fallback_track_minutes": 0.12,
-  "scene_seconds": 5,
+  "duration_seconds": 45,
+  "fallback_track_minutes": 0.15,
+  "scene_seconds": 7,
   "video_bitrate": "80k",
-  "audio_bitrate": "64k",
-  "pipeline_test_revision": 2
+  "audio_bitrate": "64k"
 }
