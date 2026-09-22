@@ -1,0 +1,71 @@
+name: SOULUME Episode 04 Smoke Test
+
+on:
+  push:
+    branches:
+      - soulume-ep04-render
+    paths:
+      - .github/workflows/soulume_ep04_smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Download sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work
+          curl -L --fail --retry 3 "https://cdn-ai-hs.picsart.com/ai-hot-storage/0e41a29e-6d08-448c-acb5-d3fea847cd5c.jpg" -o work/01.jpg
+          curl -L --fail --retry 3 "https://cdn-ai-hs.picsart.com/ai-hot-storage/434436fb-066e-459d-a0d1-28283024a166.jpg" -o work/02.jpg
+          curl -L --fail --retry 3 "https://cdn-ai-hs.picsart.com/ai-hot-storage/39ce7b9d-e515-45aa-8f97-99190f95a976.jpg" -o work/03.jpg
+          curl -L --fail --retry 3 "https://cdn-ai-hs.picsart.com/ai-hot-storage/caa1d408-1253-4ba2-b501-753d0fe39391.jpg" -o work/04.jpg
+          curl -L --fail --retry 3 "https://storage.googleapis.com/bgm-tracks-background-music-mcp/tracks/sess_cbaf0946a21a2c31/01.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=bgm-run-sa%40background-music-mcp.iam.gserviceaccount.com%2F20260922%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260922T134919Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&X-Goog-Signature=38adf911c1933b368ec73d6a740571f7f3eed2d257b730d16514871b498c608ebd1a9d76020d5bd1cd87975bdfb18af8cc1fb95b100eb1e0f361ab68f836198653568c4abecaae408d451c38df50acb94b4a209aabfeb31a4642ef1acf1ca3430f37c11194049c1cb35f08fee73aa3865a78b241737c9a62a68477144607340bcb71a816ca89ee58b8fe857d4f4d3814d584e06ccacdd3f5b02ad765948b3b2b3068063fee00ee803445e2a2b72497af7f8b82a8114edfe02b49a9ee25be761a9af0e6e734ff50b0b33cb3e223cf2cb6637e0248cbd3534e04755aaae8f75ecd9492d37894ba74da3bd34ec9c618cb7c9704800fb7cc8747e335b4437858befe" -o work/music.mp3
+          for f in work/0*.jpg work/music.mp3; do test -s "$f"; done
+
+      - name: Render 60-second preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in 01 02 03 04; do
+            ffmpeg -hide_banner -loglevel error -y -loop 1 -framerate 24 -i "work/$i.jpg" -t 15 \
+              -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,eq=saturation=1.03:contrast=1.01,format=yuv420p" \
+              -an -c:v libx264 -preset veryfast -crf 28 -r 24 "work/$i.mp4"
+          done
+          : > work/list.txt
+          for i in 01 02 03 04; do echo "file '$GITHUB_WORKSPACE/work/$i.mp4'" >> work/list.txt; done
+          ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i work/list.txt -c copy work/video60.mp4
+          ffmpeg -hide_banner -loglevel error -y -i work/video60.mp4 -i work/music.mp3 -t 60 \
+            -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 128k -shortest work/SOULUME_EP04_SMOKE_60S.mp4
+
+      - name: Verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffprobe -v error -show_streams -show_format -of json work/SOULUME_EP04_SMOKE_60S.mp4 > work/ffprobe.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open("work/ffprobe.json"))
+          dur=float(d["format"]["duration"])
+          types={s["codec_type"] for s in d["streams"]}
+          assert 59 <= dur <= 61.5, dur
+          assert "video" in types and "audio" in types, types
+          print("SMOKE VERIFIED", dur, sorted(types))
+          PY
+
+      - name: Upload preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOULUME_EP04_SMOKE_60S
+          path: |
+            work/SOULUME_EP04_SMOKE_60S.mp4
+            work/ffprobe.json
+          compression-level: 0
+          retention-days: 3
