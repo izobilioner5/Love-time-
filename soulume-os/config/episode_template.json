@@ -1,0 +1,31 @@
+{
+  "episode": 5,
+  "location": "COUNTRY / LOCATION",
+  "project_root": "..",
+  "architect_intent": {
+    "observations": ["thing 1", "thing 2", "thing 3"],
+    "realization": "what S. understands here",
+    "music_direction": "mood / use-case / reference translated into musical traits",
+    "lore_seed": "one subtle anomaly or recurring symbol"
+  },
+  "duration_seconds": 21355,
+  "audio": {
+    "tracks": ["assets/audio/track01.mp3", "assets/audio/track02.mp3"],
+    "crossfade_seconds": 4,
+    "target_lufs": -18,
+    "true_peak_db": -2,
+    "bitrate": "96k"
+  },
+  "visual": {
+    "images": ["assets/visual/scene01.jpg", "assets/visual/scene02.jpg"],
+    "scene_seconds": 600,
+    "fps": 1,
+    "video_bitrate": "80k",
+    "zoom_rate": 0.00008
+  },
+  "output": {
+    "path": "output/SOULUME_EP05_master.mp4",
+    "width": 1920,
+    "height": 1080
+  }
+}
