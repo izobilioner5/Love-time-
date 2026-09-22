@@ -122,6 +122,15 @@ jobs:
           MASTER="soulume-os/output/SOULUME_EP${EP2}_master.mp4"
           python3 soulume-os/render/qa_episode.py "$MASTER" --target-duration "$DUR" --max-size-mb 490 | tee "soulume-os/output/qa_ep${EP2}.json"
 
+      - name: Cut and QA mandatory Shorts
+        env:
+          EP: ${{ steps.req.outputs.episode }}
+        run: |
+          EP2=$(printf "%02d" "$EP")
+          MASTER="soulume-os/output/SOULUME_EP${EP2}_master.mp4"
+          rm -rf soulume-os/output/shorts
+          python3 soulume-os/shorts/cut_shorts.py "$MASTER" soulume-os/output/shorts --count 5 --seconds 30 --episode "$EP"
+
       - name: Publish pipeline asset as GitHub prerelease
         env:
           GH_TOKEN: ${{ github.token }}
@@ -131,7 +140,8 @@ jobs:
           EP2=$(printf "%02d" "$EP")
           MASTER="soulume-os/output/SOULUME_EP${EP2}_master.mp4"
           TAG="soulume-ep${EP2}-pipeline-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" "$MASTER"             --repo "$GITHUB_REPOSITORY"             --title "SOULUME EP${EP2} pipeline asset"             --notes "Automated ZERO EXTRA SPEND pipeline master for ${LOCATION}. QA passed in workflow ${GITHUB_RUN_ID}."             --prerelease
+          SHORTS=(soulume-os/output/shorts/*.mp4)
+          gh release create "$TAG" "$MASTER" "${SHORTS[@]}"             --repo "$GITHUB_REPOSITORY"             --title "SOULUME EP${EP2} pipeline asset"             --notes "Automated ZERO EXTRA SPEND pipeline master + mandatory Shorts for ${LOCATION}. QA passed in workflow ${GITHUB_RUN_ID}."             --prerelease
           URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/$(basename "$MASTER")"
           echo "MASTER_URL=$URL" | tee -a "$GITHUB_ENV"
           echo "### SOULUME pipeline output" >> "$GITHUB_STEP_SUMMARY"
@@ -144,6 +154,7 @@ jobs:
           name: soulume-qa-ep${{ steps.req.outputs.episode }}
           path: |
             soulume-os/output/qa_ep*.json
+            soulume-os/output/shorts/shorts_manifest.json
             soulume-os/config/episode_runtime.json
             soulume-os/run_request.json
           retention-days: 3
