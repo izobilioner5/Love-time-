@@ -1,0 +1,41 @@
+project: SOULUME
+public_formula: "SOUL · U · ME = your soul, you and me"
+philosophy: "Listen to your soul and my music."
+architect:
+  inside_canon: false
+  role: "sets laws and direction; never explains the world directly"
+protagonist:
+  public_name: "S."
+  gender: female
+  visual_identity:
+    hair: brunette
+    skin: sun-kissed
+    face: "often partially hidden"
+    style: "premium, candid, 80s/90s analog travel diary"
+  behavior: "observes rather than performs for camera"
+world:
+  ratio:
+    utility_music: 80
+    visual_world: 15
+    lore: 5
+  law: "S. appears to travel through a world that gradually responds to the way she perceives it"
+  reveal_policy: "show anomalies; do not explain them"
+  from_episode: 4
+growth:
+  every_episode:
+    - "one backward connection to prior canon"
+    - "one unresolved forward seed"
+    - "one listener utility/search job"
+    - "one evolution in S.'s perception"
+  audience_role: "interpret, theorize and influence peripheral expression; no automatic control of immutable world rules"
+finance:
+  mode: ZERO_EXTRA_SPEND
+  rule: "No new paid credits, subscriptions or limits until measurable traction justifies reinvestment."
+  fallback: "existing access -> free quota -> open-source/local -> explicit blocker"
+release:
+  language: English
+  user_translation: Russian
+  category: MUSIC
+  made_for_kids: false
+  ai_disclosure: true
+  public_signature: "S."
