@@ -78,3 +78,20 @@ Feedback cadence after publication:
 - 72h: initial content/listening-job read.
 - 7d: comparative decision.
 Every review ends with one primary bottleneck and one next experiment.
+
+
+## Verified cloud conveyor — 2026-09-22
+
+Two cloud smoke tests completed successfully. The latest verified workflow run is:
+- https://github.com/izobilioner5/Love-time-/actions/runs/35745796551
+- result: success
+- hard QA: PASS
+- 1920x1080 H.264 + AAC 44.1 kHz stereo
+- direct test master: https://github.com/izobilioner5/Love-time-/releases/download/soulume-ep99-pipeline-2/SOULUME_EP99_master.mp4
+
+Asset rule: use episode-specific quality assets when present; generate procedural audio and use the fallback S. visual only for missing slots.
+
+The GitHub Release MP4 -> Metricool handoff was also verified with a safe private draft in SOULUME brand 7035936. Canary post id: 380158200, UUID: 6462255968076385968. It is draft=true, autoPublish=false, privacy=private and must never be treated as a public release.
+
+For a real episode:
+Architect Brief -> update run_request.json -> cloud workflow -> QA PASS -> Release MP4 URL -> final package -> Metricool -> public YouTube -> verify actual public URL.
