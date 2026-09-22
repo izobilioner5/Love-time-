@@ -12,8 +12,9 @@ def probe_duration(p):
     return float(run(["ffprobe","-v","error","-show_entries","format=duration","-of","default=nw=1:nk=1",str(p)]).stdout.strip())
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument("spec"); a=ap.parse_args()
-    spec=json.load(open(a.spec,encoding="utf-8")); base=Path(a.spec).resolve().parent
-    R=lambda x:(Path(x) if Path(x).is_absolute() else (base/x).resolve())
+    spec=json.load(open(a.spec,encoding="utf-8")); spec_dir=Path(a.spec).resolve().parent
+    root=(spec_dir/spec.get("project_root",".")).resolve()
+    R=lambda x:(Path(x) if Path(x).is_absolute() else (root/x).resolve())
     dur=int(spec["duration_seconds"]); au=spec["audio"]; vi=spec["visual"]; outcfg=spec["output"]
     tracks=[R(x) for x in au["tracks"]]; images=[R(x) for x in vi["images"]]
     for p in tracks+images:
