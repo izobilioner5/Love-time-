@@ -1,0 +1,52 @@
+name: SOULUME EP04 Final Thumbnail Release
+
+on:
+  push:
+    branches:
+      - soulume-ep04-render
+    paths:
+      - .github/workflows/ep04_thumb_release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-thumb:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact approved thumbnail
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 5 "https://at.adobe.com/SWQL9EjpNv38WsN8" -o EP04_FINAL_THUMB.jpeg
+          test "$(stat -c%s EP04_FINAL_THUMB.jpeg)" -gt 500000
+          file EP04_FINAL_THUMB.jpeg
+          file EP04_FINAL_THUMB.jpeg | grep -qi 'JPEG image data'
+
+      - name: Publish thumbnail as release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="soulume-ep04-metricool-final"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" EP04_FINAL_THUMB.jpeg --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" EP04_FINAL_THUMB.jpeg --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --prerelease \
+              --title "SOULUME Episode 04 Metricool delivery" \
+              --notes "Publishing assets for SOULUME Episode 04 — New Zealand."
+          fi
+          URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/EP04_FINAL_THUMB.jpeg"
+          echo "$URL" > thumb_url.txt
+          curl -L --fail --retry 5 --range 0-65535 "$URL" -o thumb_head.bin
+          test "$(stat -c%s thumb_head.bin)" -gt 10000
+
+      - name: Save receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: EP04_FINAL_THUMB_RECEIPT
+          path: thumb_url.txt
+          retention-days: 2
