@@ -1,0 +1,205 @@
+name: SOULUME EP04 Accelerated Metricool 4K
+
+on:
+  push:
+    branches:
+      - soulume-ep04-render
+    paths:
+      - .github/workflows/ep04_accel_metricool.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  transcode:
+    strategy:
+      fail-fast: false
+      max-parallel: 18
+      matrix:
+        include:
+          - idx: "00"
+            start: 0
+            duration: 1200
+          - idx: "01"
+            start: 1200
+            duration: 1200
+          - idx: "02"
+            start: 2400
+            duration: 1200
+          - idx: "03"
+            start: 3600
+            duration: 1200
+          - idx: "04"
+            start: 4800
+            duration: 1200
+          - idx: "05"
+            start: 6000
+            duration: 1200
+          - idx: "06"
+            start: 7200
+            duration: 1200
+          - idx: "07"
+            start: 8400
+            duration: 1200
+          - idx: "08"
+            start: 9600
+            duration: 1200
+          - idx: "09"
+            start: 10800
+            duration: 1200
+          - idx: "10"
+            start: 12000
+            duration: 1200
+          - idx: "11"
+            start: 13200
+            duration: 1200
+          - idx: "12"
+            start: 14400
+            duration: 1200
+          - idx: "13"
+            start: 15600
+            duration: 1200
+          - idx: "14"
+            start: 16800
+            duration: 1200
+          - idx: "15"
+            start: 18000
+            duration: 1200
+          - idx: "16"
+            start: 19200
+            duration: 1200
+          - idx: "17"
+            start: 20400
+            duration: 955
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Fetch exact final master
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 5 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/10708300363/zip" \
+            -o final.zip
+          unzip -p final.zip SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4 > source.mp4
+          rm -f final.zip
+          test "$(stat -c%s source.mp4)" -gt 6000000000
+
+      - name: Encode 4K segment
+        shell: bash
+        run: |
+          set -euo pipefail
+          IDX="${{ matrix.idx }}"
+          START="${{ matrix.start }}"
+          DUR="${{ matrix.duration }}"
+          ffmpeg -hide_banner -loglevel error -y \
+            -ss "$START" -t "$DUR" -i source.mp4 \
+            -map 0:v:0 -map 0:a:0 \
+            -vf "fps=12" \
+            -c:v libx265 -preset ultrafast -tag:v hvc1 -pix_fmt yuv420p \
+            -b:v 85k -maxrate 115k -bufsize 230k -g 120 \
+            -c:a aac -b:a 80k -ar 48000 -ac 2 \
+            -movflags +faststart \
+            "seg_${IDX}.mp4"
+          rm -f source.mp4
+          ffprobe -v error -show_entries format=duration,size -of json "seg_${IDX}.mp4"
+
+      - name: Upload compressed segment
+        uses: actions/upload-artifact@v4
+        with:
+          name: ACCEL_SEG_${{ matrix.idx }}
+          path: seg_${{ matrix.idx }}.mp4
+          compression-level: 0
+          retention-days: 1
+
+  assemble:
+    needs: transcode
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Download all compressed segments
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ACCEL_SEG_*
+          path: segments
+          merge-multiple: true
+
+      - name: Assemble exact episode
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls -lh segments
+          : > list.txt
+          for i in $(seq -w 0 17); do
+            test -s "segments/seg_${i}.mp4"
+            echo "file 'segments/seg_${i}.mp4'" >> list.txt
+          done
+          ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i list.txt -c copy -movflags +faststart EP04_METRICOOL_4K.mp4
+          ffprobe -v error -show_streams -show_format -of json EP04_METRICOOL_4K.mp4 > probe.json
+          python3 - <<'PY'
+          import json, os
+          p="EP04_METRICOOL_4K.mp4"
+          d=json.load(open("probe.json"))
+          dur=float(d["format"]["duration"])
+          size=os.path.getsize(p)
+          v=next(s for s in d["streams"] if s["codec_type"]=="video")
+          a=next(s for s in d["streams"] if s["codec_type"]=="audio")
+          assert abs(dur-21355) < 3.0, dur
+          assert int(v["width"])==3840 and int(v["height"])==2160
+          assert int(a["sample_rate"])==48000
+          assert size < 495_000_000, size
+          print("ACCEL_DELIVERY_OK", dur, size, v["codec_name"], a["codec_name"])
+          PY
+          sha256sum EP04_METRICOOL_4K.mp4 > SHA256.txt
+
+      - name: Publish direct MP4 release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="soulume-ep04-metricool-final"
+          FINAL="SOULUME_EP04_NEW_ZEALAND_5H55M55S_METRICOOL_4K.mp4"
+          mv EP04_METRICOOL_4K.mp4 "$FINAL"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$FINAL" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "$FINAL" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --prerelease \
+              --title "SOULUME Episode 04 Metricool delivery" \
+              --notes "Verified 4K 5:55:55 delivery master for SOULUME Episode 04."
+          fi
+          URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$FINAL"
+          echo "$URL" > public_url.txt
+          echo "DIRECT_URL=$URL"
+
+      - name: Verify release URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL=$(cat public_url.txt)
+          curl -L --fail --retry 5 --range 0-1048575 "$URL" -o head.bin
+          test "$(stat -c%s head.bin)" -gt 100000
+          rm head.bin
+
+      - name: Upload final receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: EP04_ACCEL_METRICOOL_RECEIPT
+          path: |
+            public_url.txt
+            probe.json
+            SHA256.txt
+          retention-days: 2
