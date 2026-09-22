@@ -1,0 +1,126 @@
+name: SOULUME OS Render
+
+on:
+  push:
+    paths:
+      - 'soulume-os/run_request.json'
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python3 -m pip install --quiet numpy
+
+      - name: Read request
+        id: req
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          r=json.load(open('soulume-os/run_request.json'))
+          for k in ['episode','duration_seconds','fallback_track_minutes','scene_seconds']:
+              print(f"{k}={r[k]}")
+          print("location="+str(r.get('location','Unknown')).replace('\n',' '))
+          PY
+
+      - name: Build zero-cost assets
+        env:
+          EP: ${{ steps.req.outputs.episode }}
+          TRACK_MIN: ${{ steps.req.outputs.fallback_track_minutes }}
+        run: |
+          EP2=$(printf "%02d" "$EP")
+          ADIR="soulume-os/assets/ep${EP2}/audio"
+          VDIR="soulume-os/assets/ep${EP2}/visual"
+          mkdir -p "$ADIR" "$VDIR" soulume-os/config soulume-os/output
+          python3 soulume-os/audio/generate_fallback_ambient.py "$ADIR" --tracks 8 --minutes "$TRACK_MIN" --seed "$((500+EP))" --prefix temp
+          python3 - <<PY
+          from pathlib import Path
+          p=Path("$ADIR")
+          for i,f in enumerate(sorted(p.glob("temp_*.mp3")),1):
+              f.rename(p/f"track{i:02d}.mp3")
+          PY
+          for n in 01 02 03 04 05 06; do
+            cp soulume-os/assets/S_reference_fallback.jpg "$VDIR/scene${n}.jpg"
+          done
+
+      - name: Build Episode Spec
+        env:
+          EP: ${{ steps.req.outputs.episode }}
+          DUR: ${{ steps.req.outputs.duration_seconds }}
+          SCENE_SECONDS: ${{ steps.req.outputs.scene_seconds }}
+        run: |
+          python3 - <<'PY'
+          import json
+          r=json.load(open('soulume-os/run_request.json'))
+          brief={
+            "episode":r["episode"],
+            "location":r.get("location","Unknown"),
+            "observations":r.get("observations",["environment","light","movement"]),
+            "realization":r.get("realization",""),
+            "music_direction":r.get("music_direction","low-event soulful ambient"),
+            "lore_seed":r.get("lore_seed","subtle reality anomaly"),
+            "duration_seconds":r["duration_seconds"]
+          }
+          json.dump(brief,open('soulume-os/config/architect_brief_runtime.json','w'),ensure_ascii=False,indent=2)
+          PY
+          python3 soulume-os/spec/build_episode_spec.py soulume-os/config/architect_brief_runtime.json soulume-os/config/episode_runtime.json
+          python3 - <<'PY'
+          import json
+          p='soulume-os/config/episode_runtime.json'
+          d=json.load(open(p))
+          r=json.load(open('soulume-os/run_request.json'))
+          d['project_root']='..'
+          d['visual']['scene_seconds']=r['scene_seconds']
+          d['visual']['fps']=1
+          d['visual']['video_bitrate']=r.get('video_bitrate','80k')
+          d['audio']['bitrate']=r.get('audio_bitrate','96k')
+          json.dump(d,open(p,'w'),indent=2)
+          PY
+
+      - name: Render
+        run: |
+          python3 soulume-os/render/render_episode.py soulume-os/config/episode_runtime.json
+
+      - name: QA hard gate
+        env:
+          DUR: ${{ steps.req.outputs.duration_seconds }}
+        run: |
+          EP2=$(printf "%02d" "${{ steps.req.outputs.episode }}")
+          MASTER="soulume-os/output/SOULUME_EP${EP2}_master.mp4"
+          python3 soulume-os/render/qa_episode.py "$MASTER" --target-duration "$DUR" --max-size-mb 490 | tee "soulume-os/output/qa_ep${EP2}.json"
+
+      - name: Publish pipeline asset as GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EP: ${{ steps.req.outputs.episode }}
+          LOCATION: ${{ steps.req.outputs.location }}
+        run: |
+          EP2=$(printf "%02d" "$EP")
+          MASTER="soulume-os/output/SOULUME_EP${EP2}_master.mp4"
+          TAG="soulume-ep${EP2}-pipeline-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" "$MASTER"             --repo "$GITHUB_REPOSITORY"             --title "SOULUME EP${EP2} pipeline asset"             --notes "Automated ZERO EXTRA SPEND pipeline master for ${LOCATION}. QA passed in workflow ${GITHUB_RUN_ID}."             --prerelease
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/$(basename "$MASTER")"
+          echo "MASTER_URL=$URL" | tee -a "$GITHUB_ENV"
+          echo "### SOULUME pipeline output" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Episode: $EP2" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Master: $URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload QA bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: soulume-qa-ep${{ steps.req.outputs.episode }}
+          path: |
+            soulume-os/output/qa_ep*.json
+            soulume-os/config/episode_runtime.json
+            soulume-os/run_request.json
+          retention-days: 3
+          compression-level: 0
