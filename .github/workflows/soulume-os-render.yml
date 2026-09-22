@@ -41,15 +41,39 @@ jobs:
           ADIR="soulume-os/assets/ep${EP2}/audio"
           VDIR="soulume-os/assets/ep${EP2}/visual"
           mkdir -p "$ADIR" "$VDIR" soulume-os/config soulume-os/output
-          python3 soulume-os/audio/generate_fallback_ambient.py "$ADIR" --tracks 8 --minutes "$TRACK_MIN" --seed "$((500+EP))" --prefix temp
+          # Keep any higher-quality episode assets already present.
+          # Generate only the missing audio slots and use the fallback S. image only for missing scenes.
           python3 - <<PY
           from pathlib import Path
           p=Path("$ADIR")
-          for i,f in enumerate(sorted(p.glob("temp_*.mp3")),1):
-              f.rename(p/f"track{i:02d}.mp3")
+          missing=[i for i in range(1,9) if not (p/f"track{i:02d}.mp3").exists()]
+          print("Missing audio slots:", missing)
+          Path("/tmp/soulume_missing_audio.txt").write_text(",".join(map(str,missing)))
           PY
+          MISSING=$(cat /tmp/soulume_missing_audio.txt)
+          if [ -n "$MISSING" ]; then
+            TMPDIR="$ADIR/fallback_tmp"
+            rm -rf "$TMPDIR" && mkdir -p "$TMPDIR"
+            COUNT=$(python3 - <<'PY'
+          s=open('/tmp/soulume_missing_audio.txt').read().strip()
+          print(0 if not s else len(s.split(',')))
+          PY
+            )
+            python3 soulume-os/audio/generate_fallback_ambient.py "$TMPDIR" --tracks "$COUNT" --minutes "$TRACK_MIN" --seed "$((500+EP))" --prefix temp
+            python3 - <<PY
+          from pathlib import Path
+          target=Path("$ADIR")
+          temp=Path("$ADIR/fallback_tmp")
+          missing=[int(x) for x in Path("/tmp/soulume_missing_audio.txt").read_text().split(",") if x]
+          for slot,src in zip(missing,sorted(temp.glob("temp_*.mp3"))):
+              src.replace(target/f"track{slot:02d}.mp3")
+          temp.rmdir()
+          PY
+          fi
           for n in 01 02 03 04 05 06; do
-            cp soulume-os/assets/S_reference_fallback.jpg "$VDIR/scene${n}.jpg"
+            if [ ! -f "$VDIR/scene${n}.jpg" ]; then
+              cp soulume-os/assets/S_reference_fallback.jpg "$VDIR/scene${n}.jpg"
+            fi
           done
 
       - name: Build Episode Spec
