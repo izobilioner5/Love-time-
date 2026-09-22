@@ -1,0 +1,107 @@
+name: SOULUME EP04 Split Final Master
+
+on:
+  push:
+    branches:
+      - soulume-ep04-render
+    paths:
+      - .github/workflows/ep04_split.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check disk
+        run: df -h
+
+      - name: Download final artifact ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work parts
+          curl -L --fail --retry 5 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/10708300363/zip" \
+            -o work/final.zip
+          ls -lh work/final.zip
+          unzip -l work/final.zip | tail -n +1
+
+      - name: Split exact MP4 into connector-sized chunks
+        shell: bash
+        run: |
+          set -euo pipefail
+          MP4="SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4"
+          unzip -p work/final.zip "$MP4" | split -b 400M -d -a 2 - parts/part_
+          test "$(find parts -maxdepth 1 -type f -name 'part_*' | wc -l)" -eq 16
+          cat parts/part_* | sha256sum | tee parts/master.sha256
+          printf '%s\n' "$MP4" > parts/master_name.txt
+          rm -f work/final.zip
+          ls -lh parts
+          df -h
+
+      - name: Upload part 00
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_00, path: parts/part_00, compression-level: 0, retention-days: 2}
+      - name: Upload part 01
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_01, path: parts/part_01, compression-level: 0, retention-days: 2}
+      - name: Upload part 02
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_02, path: parts/part_02, compression-level: 0, retention-days: 2}
+      - name: Upload part 03
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_03, path: parts/part_03, compression-level: 0, retention-days: 2}
+      - name: Upload part 04
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_04, path: parts/part_04, compression-level: 0, retention-days: 2}
+      - name: Upload part 05
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_05, path: parts/part_05, compression-level: 0, retention-days: 2}
+      - name: Upload part 06
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_06, path: parts/part_06, compression-level: 0, retention-days: 2}
+      - name: Upload part 07
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_07, path: parts/part_07, compression-level: 0, retention-days: 2}
+      - name: Upload part 08
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_08, path: parts/part_08, compression-level: 0, retention-days: 2}
+      - name: Upload part 09
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_09, path: parts/part_09, compression-level: 0, retention-days: 2}
+      - name: Upload part 10
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_10, path: parts/part_10, compression-level: 0, retention-days: 2}
+      - name: Upload part 11
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_11, path: parts/part_11, compression-level: 0, retention-days: 2}
+      - name: Upload part 12
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_12, path: parts/part_12, compression-level: 0, retention-days: 2}
+      - name: Upload part 13
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_13, path: parts/part_13, compression-level: 0, retention-days: 2}
+      - name: Upload part 14
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_14, path: parts/part_14, compression-level: 0, retention-days: 2}
+      - name: Upload part 15
+        uses: actions/upload-artifact@v4
+        with: {name: EP04_CHUNK_15, path: parts/part_15, compression-level: 0, retention-days: 2}
+
+      - name: Upload checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: EP04_CHECKSUM
+          path: |
+            parts/master.sha256
+            parts/master_name.txt
+          retention-days: 2
