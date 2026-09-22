@@ -1,0 +1,17 @@
+{
+  "seed": 5,
+  "seconds": 180,
+  "sample_rate": 44100,
+  "progression": [["D","min"],["Bb","maj"],["F","maj"],["C","sus2"]],
+  "octave": 3,
+  "chord_seconds": 18,
+  "crossfade_seconds": 4,
+  "brightness": 0.25,
+  "movement": 0.045,
+  "ambience_level": 0.018,
+  "ambience_cutoff_hz": 700,
+  "detail_density": 0.12,
+  "detail_level": 0.02,
+  "master_lowpass_hz": 6200,
+  "peak_target": 0.5
+}
