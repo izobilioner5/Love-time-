@@ -1,0 +1,77 @@
+name: SOULUME Episode 04 FINAL V6 Publish Master
+
+on:
+  push:
+    branches: [soulume-ep04-preview-v2]
+    paths: [.github/workflows/soulume_ep04_final_v6.yml]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  final:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg curl unzip
+      - name: Download approved 4K master
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN_ID=35743546722
+          arts=$(curl -sSf -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/artifacts")
+          aid=$(printf '%s' "$arts" | python3 -c 'import sys,json; d=json.load(sys.stdin); x=[a for a in d["artifacts"] if a["name"]=="SOULUME_EP04_NEW_ZEALAND_5H55M55S"]; print(x[0]["id"])')
+          curl -L --fail --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$aid/zip" -o master.zip
+          mkdir -p master out
+          unzip -q master.zip -d master
+          src=$(find master -type f -name 'SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4' | head -1)
+          [ -n "$src" ] || exit 1
+          echo "$src" > source.txt
+
+      - name: Build final publish master
+        shell: bash
+        run: |
+          set -euo pipefail
+          src=$(cat source.txt)
+          # Keep the approved 4K picture bit-for-bit; replace only audio mastering.
+          # V6 approved chain: mobile-forward EQ, controlled compression, strong gain, limiter.
+          ffmpeg -hide_banner -y -i "$src" -map 0:v:0 -map 0:a:0             -c:v copy             -af "highpass=f=45,equalizer=f=180:t=q:w=1.0:g=-1.5,equalizer=f=2500:t=q:w=1.0:g=2.0,equalizer=f=6000:t=q:w=1.2:g=1.0,acompressor=threshold=0.08:ratio=3:attack=15:release=180:makeup=3:knee=4,volume=7dB,alimiter=limit=0.70:attack=10:release=150"             -c:a aac -b:a 384k -ar 48000 -ac 2             -movflags +faststart out/SOULUME_EP04_NEW_ZEALAND_FINAL_PUBLISH_V6.mp4
+
+      - name: Final QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          f=out/SOULUME_EP04_NEW_ZEALAND_FINAL_PUBLISH_V6.mp4
+          ffprobe -v error -show_streams -show_format -of json "$f" > out/ffprobe.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open("out/ffprobe.json"))
+          dur=float(d["format"]["duration"])
+          s=d["streams"]
+          v=next(x for x in s if x["codec_type"]=="video")
+          a=next(x for x in s if x["codec_type"]=="audio")
+          assert abs(dur-21355)<1.1, dur
+          assert int(v["width"])==3840 and int(v["height"])==2160
+          assert int(a["sample_rate"])==48000
+          assert int(a["channels"])==2
+          print("FINAL QA PASS",dur,v["width"],v["height"],a["sample_rate"],a["channels"])
+          PY
+          ffmpeg -hide_banner -i "$f" -af volumedetect -f null - 2> out/volume.txt || true
+          grep -E "mean_volume|max_volume" out/volume.txt || true
+          ffmpeg -v error -ss 02:57:00 -i "$f" -t 30 -f null - 2> out/decode_check.txt
+          test ! -s out/decode_check.txt
+
+      - name: Upload final publish master
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOULUME_EP04_FINAL_PUBLISH_V6_4K_5H55M55S
+          path: |
+            out/SOULUME_EP04_NEW_ZEALAND_FINAL_PUBLISH_V6.mp4
+            out/ffprobe.json
+            out/volume.txt
+          compression-level: 0
+          retention-days: 3
