@@ -1,0 +1,66 @@
+name: SOULUME EP04 Direct Handoff
+
+on:
+  push:
+    branches:
+      - soulume-ep04-render
+    paths:
+      - .github/workflows/ep04_handoff.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  handoff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Download final artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work out
+          curl -L --fail --retry 5 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/10708300363/zip" \
+            -o work/final.zip
+          unzip -p work/final.zip SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4 > work/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4
+          sha256sum work/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4 | tee out/local_sha256.txt
+          test "$(stat -c%s work/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4)" -gt 6000000000
+          rm -f work/final.zip
+
+      - name: Upload exact master to temporary direct host
+        shell: bash
+        run: |
+          set -euo pipefail
+          url=$(curl --fail --show-error --retry 3 --retry-all-errors \
+            -H "Max-Days: 1" \
+            --upload-file work/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4 \
+            "https://transfer.sh/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4")
+          echo "$url" | tee out/public_url.txt
+          test -n "$url"
+
+      - name: Verify remote URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          url=$(cat out/public_url.txt)
+          curl -L --fail --retry 3 --range 0-1048575 "$url" -o out/remote_head.bin
+          test "$(stat -c%s out/remote_head.bin)" -gt 100000
+          echo "REMOTE_URL=$url"
+          echo "HANDOFF_OK" > out/status.txt
+
+      - name: Upload handoff receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: EP04_HANDOFF_RECEIPT
+          path: |
+            out/public_url.txt
+            out/local_sha256.txt
+            out/status.txt
+          retention-days: 2
