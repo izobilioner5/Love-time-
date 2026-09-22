@@ -1,4 +1,4 @@
-name: SOULUME Episode 04 Smoke Test
+name: SOULUME Episode 04 Full FFmpeg Render
 
 on:
   push:
@@ -11,61 +11,220 @@ permissions:
   contents: read
 
 jobs:
-  smoke:
+  render:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 90
     steps:
       - name: Install ffmpeg
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core curl
 
-      - name: Download sources
+      - name: Prepare folders and font
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p work
-          curl -L --fail --retry 3 "https://cdn-ai-hs.picsart.com/ai-hot-storage/0e41a29e-6d08-448c-acb5-d3fea847cd5c.jpg" -o work/01.jpg
-          curl -L --fail --retry 3 "https://cdn-ai-hs.picsart.com/ai-hot-storage/434436fb-066e-459d-a0d1-28283024a166.jpg" -o work/02.jpg
-          curl -L --fail --retry 3 "https://cdn-ai-hs.picsart.com/ai-hot-storage/39ce7b9d-e515-45aa-8f97-99190f95a976.jpg" -o work/03.jpg
-          curl -L --fail --retry 3 "https://cdn-ai-hs.picsart.com/ai-hot-storage/caa1d408-1253-4ba2-b501-753d0fe39391.jpg" -o work/04.jpg
-          curl -L --fail --retry 3 "https://storage.googleapis.com/bgm-tracks-background-music-mcp/tracks/sess_cbaf0946a21a2c31/01.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=bgm-run-sa%40background-music-mcp.iam.gserviceaccount.com%2F20260922%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260922T134919Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&X-Goog-Signature=38adf911c1933b368ec73d6a740571f7f3eed2d257b730d16514871b498c608ebd1a9d76020d5bd1cd87975bdfb18af8cc1fb95b100eb1e0f361ab68f836198653568c4abecaae408d451c38df50acb94b4a209aabfeb31a4642ef1acf1ca3430f37c11194049c1cb35f08fee73aa3865a78b241737c9a62a68477144607340bcb71a816ca89ee58b8fe857d4f4d3814d584e06ccacdd3f5b02ad765948b3b2b3068063fee00ee803445e2a2b72497af7f8b82a8114edfe02b49a9ee25be761a9af0e6e734ff50b0b33cb3e223cf2cb6637e0248cbd3534e04755aaae8f75ecd9492d37894ba74da3bd34ec9c618cb7c9704800fb7cc8747e335b4437858befe" -o work/music.mp3
-          for f in work/0*.jpg work/music.mp3; do test -s "$f"; done
+          mkdir -p work/images work/clips work/notes out
+          curl -L --fail --retry 3 "https://github.com/google/fonts/raw/main/ofl/caveat/Caveat%5Bwght%5D.ttf" -o work/Caveat.ttf
+          test -s work/Caveat.ttf
 
-      - name: Render 60-second preview
+      - name: Download visual sources
         shell: bash
         run: |
           set -euo pipefail
-          for i in 01 02 03 04; do
-            ffmpeg -hide_banner -loglevel error -y -loop 1 -framerate 24 -i "work/$i.jpg" -t 15 \
-              -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,eq=saturation=1.03:contrast=1.01,format=yuv420p" \
-              -an -c:v libx264 -preset veryfast -crf 28 -r 24 "work/$i.mp4"
+          urls=(
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/0e41a29e-6d08-448c-acb5-d3fea847cd5c.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/434436fb-066e-459d-a0d1-28283024a166.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/39ce7b9d-e515-45aa-8f97-99190f95a976.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/59b772a5-07ee-437e-8e81-10ef6b0446f5.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/caa1d408-1253-4ba2-b501-753d0fe39391.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/6b5f1b33-b2bf-42a3-91fb-e50a33a5b94a.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/60ba2c2e-8165-4d6a-8448-c9671fea5a1e.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/09fe50b1-f95b-43c2-991b-b863be887f0d.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/787847e3-acff-4af1-8fa2-637d13313db0.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/e69c60c3-0d27-42d6-93ac-eb125efddb24.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/e9f580e9-99ea-4d5b-90f1-2e5b885ebb87.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/5057cea3-da5d-4fc5-880d-a2baffa0cf53.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/fcb3654a-5c1e-4a8f-82d0-6a1343ecccd3.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/655dcd75-3fb4-43a3-b8a6-c5ecedfcbede.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/20e68842-f55d-45f4-8441-1340e93544c8.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/9c884ad0-4946-4619-9bae-35f9a9f19485.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/fcbfac25-6e90-4f4e-8d47-a7ce5aea63f6.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/28140912-a731-40e2-9c78-a38d5f14b7af.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/c679bcbd-334c-4899-a23b-faadb68f417a.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/61407139-c615-4c76-9dcb-a3913349f6d9.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/5cfb6402-fc93-4bd7-83b8-b1a18f9177a0.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/5f6a3fda-3d96-4ee1-ab3d-38e1ded3590e.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/f6730e47-441d-4ad6-bbff-16f8137999b7.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/0154d010-11db-40ac-8965-d73363e19b6b.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/807525a9-eb3f-4260-b3f8-e526999fab49.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/ad20f085-3e43-4b1c-bd17-cbedb17ff0b2.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/c02771d4-055c-41c3-947a-1c5ed8498e34.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/d98a9f50-151a-41c3-80f7-2f7cce356420.jpg"
+          "https://cdn-ai-hs.picsart.com/ai-hot-storage/285a4147-0d25-48d4-9311-f6b59f4b4521.jpg"
+          "https://images.pexels.com/photos/36620443/pexels-photo-36620443.jpeg?cs=srgb&dl=pexels-eclipse-chasers-716719984-36620443.jpg&fm=jpg"
+          "https://images.pexels.com/photos/19733325/pexels-photo-19733325.jpeg?cs=srgb&dl=pexels-andromeda99-19733325.jpg&fm=jpg"
+          "https://images.pexels.com/photos/20066249/pexels-photo-20066249.jpeg"
+          )
+          i=0
+          for u in "${urls[@]}"; do
+            printf -v fn "work/images/%02d.jpg" "$i"
+            if ! curl -L --fail --retry 2 "$u" -o "$fn"; then
+              cp work/images/00.jpg "$fn"
+            fi
+            test -s "$fn"
+            i=$((i+1))
           done
-          : > work/list.txt
-          for i in 01 02 03 04; do echo "file '$GITHUB_WORKSPACE/work/$i.mp4'" >> work/list.txt; done
-          ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i work/list.txt -c copy work/video60.mp4
-          ffmpeg -hide_banner -loglevel error -y -i work/video60.mp4 -i work/music.mp3 -t 60 \
-            -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 128k -shortest work/SOULUME_EP04_SMOKE_60S.mp4
+          echo "Downloaded $i images"
 
-      - name: Verify
+      - name: Download music
         shell: bash
         run: |
           set -euo pipefail
-          ffprobe -v error -show_streams -show_format -of json work/SOULUME_EP04_SMOKE_60S.mp4 > work/ffprobe.json
+          music=(
+          "https://storage.googleapis.com/bgm-tracks-background-music-mcp/tracks/sess_cbaf0946a21a2c31/01.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=bgm-run-sa%40background-music-mcp.iam.gserviceaccount.com%2F20260922%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260922T134919Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&X-Goog-Signature=38adf911c1933b368ec73d6a740571f7f3eed2d257b730d16514871b498c608ebd1a9d76020d5bd1cd87975bdfb18af8cc1fb95b100eb1e0f361ab68f836198653568c4abecaae408d451c38df50acb94b4a209aabfeb31a4642ef1acf1ca3430f37c11194049c1cb35f08fee73aa3865a78b241737c9a62a68477144607340bcb71a816ca89ee58b8fe857d4f4d3814d584e06ccacdd3f5b02ad765948b3b2b3068063fee00ee803445e2a2b72497af7f8b82a8114edfe02b49a9ee25be761a9af0e6e734ff50b0b33cb3e223cf2cb6637e0248cbd3534e04755aaae8f75ecd9492d37894ba74da3bd34ec9c618cb7c9704800fb7cc8747e335b4437858befe"
+          "https://storage.googleapis.com/bgm-tracks-background-music-mcp/tracks/sess_562c7c3d51587923/01.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=bgm-run-sa%40background-music-mcp.iam.gserviceaccount.com%2F20260922%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260922T135020Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&X-Goog-Signature=a336f1845cb651c7e5d2e825e67f9e5f6dad86f2ca50e5cd7a77744134905a62fa6b7e62996f4b862755e8c335bc8339c93e247d7a82a7992c1a16e22a35c4e9b274b8b9c747e7d61f3a0d82cb41c10d8684a811091b1c3de1781f01b1efa170fa721c1de448be7c84ace5945e16c26ed2842dad1693f1b5a513928e47f78b972c175ddb3b4079843e64b470c7c88ad3db8006be2a52177bbcaa2e04c1ffb51f2541109322a285e090a2404f3332ec9a6106abe1c76b24ac2876a87249934949a4e139de294c8425c48026da31c65429d0fa78744f132f08ffc05afd4a0800cf1554973449051b8b43e7eb3352502d562c46d37d315632b67824cfa2e0a49057"
+          "https://storage.googleapis.com/bgm-tracks-background-music-mcp/tracks/sess_d6e9a419f9a1081c/01.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=bgm-run-sa%40background-music-mcp.iam.gserviceaccount.com%2F20260922%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260922T135058Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&X-Goog-Signature=4c626080df99fb44ff4a8c0e924b8a9cac36632580775691bb2c338e67d450ea7c6debd35195dd17bdc1f196877ff1a8890b61fbbb5e65eb62cc94229510a281f1197e0686cec339ca8f5af299bfbd8c2e2ff657998b48dba58b37778a76f4375a7d3513759f05729f8b2e258d478363477419609e09bd32283eb50b78ab5e13c166d630d93c7a3113fc9c6dc7fd0a89233856c9fd3e7a3928f04ae827dd8a8d6c9d8f9cb7cf8a8a2ea6ddadbeb7356b864afb6c5ef31998a5b4d54e89e76ac6909e340d275a5ab0ad6842029a4fb6a1d0b96ce65e8df19df95bb9ad414383df612b9183888b7f747db50cb366134992a4e695b549b2c850671bbd3f0f041322"
+          "https://storage.googleapis.com/bgm-tracks-background-music-mcp/tracks/sess_a7664a20c5d671c5/01.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=bgm-run-sa%40background-music-mcp.iam.gserviceaccount.com%2F20260922%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260922T135240Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&X-Goog-Signature=b7845e23658e716ac7bc6d3aaafb6332de1a317b05d0b4c0513909216bc8dcc7f1c813d2a7cd8e1e4ef584109f3fb5b03d6fac5f5dc55f18ff397ee83e80a4ea7f398364d5044b90635c712d203bce0cc73f7454b48a066147de5576e8f74332a825b2762712afb1ce1d5e512b54b8e403dc3e8d1e42a7f6f2525a1dfe74d6c81afe0bf34781edc69c4de6e38f81e07832114702d1e64bb129b52a588a2491672ead7a227c1ad806aa56cde5662f3ec2f7958a705a985ceadcf1c6621f59089416cffc0be94fa4d0edd2dd50d19d0903bc516bd2b76e43c483f6e756e6e31702b06bbe94dee009564ab4b419199f3cabd4e7ce25a26e66cfba99532e6d975927"
+          "https://storage.googleapis.com/bgm-tracks-background-music-mcp/tracks/sess_fc8f91c242b68fe6/01.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=bgm-run-sa%40background-music-mcp.iam.gserviceaccount.com%2F20260922%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260922T135335Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&X-Goog-Signature=6e52d394a562d4e6a590db5ba04036143ae11c048e596adf534bd74c050c09a556fe31628ef86585117f7a5ca1d3188c5ec2646d19a3e7e330eacd1af845651aca4ac454655814b339a9c4c5bb808636a046cb7223a1cea882f379bf3b607c65cb9b98da5234748d9d6301fc4e1fddb86250cd9c7d09a3f825fed30611b0c917592bc498029242ff833cdb0a8a30df679c9762d9205058da96a5460337a71bd74cbd225e6ad890708c000e21459619ae20009b022ae44d2a38a5a8755b8cf9d01fd13b572b74e8e68b19db1f38152f03f66e26fc809e9f6034b48fbc9319042cf9672725b4860985f3e92845bee5d93d4d84ef03d67e0cf3b3594935dd97d63d"
+          )
+          i=0
+          for u in "${music[@]}"; do
+            printf -v fn "work/music_%02d.mp3" "$i"
+            curl -L --fail --retry 3 "$u" -o "$fn"
+            test -s "$fn"
+            i=$((i+1))
+          done
+
+      - name: Build music master
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffmpeg -hide_banner -loglevel error -y             -i work/music_00.mp3 -i work/music_01.mp3 -i work/music_02.mp3 -i work/music_03.mp3 -i work/music_04.mp3             -filter_complex "[0:a]loudnorm=I=-20:TP=-2:LRA=10[a0];[1:a]loudnorm=I=-20:TP=-2:LRA=10[a1];[2:a]loudnorm=I=-20:TP=-2:LRA=10[a2];[3:a]loudnorm=I=-20:TP=-2:LRA=10[a3];[4:a]loudnorm=I=-20:TP=-2:LRA=10[a4];[a0][a1]acrossfade=d=3[b1];[b1][a2]acrossfade=d=3[b2];[b2][a3]acrossfade=d=3[b3];[b3][a4]acrossfade=d=3[a]"             -map "[a]" -c:a aac -b:a 128k work/music_master.m4a
+
+      - name: Render reusable clips
+        shell: bash
+        run: |
+          set -euo pipefail
+          render_one () {
+            i="$1"
+            printf -v img "work/images/%02d.jpg" "$i"
+            printf -v out "work/clips/base_%02d.mp4" "$i"
+            FONT="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+            SCRIPT="$GITHUB_WORKSPACE/work/Caveat.ttf"
+            case $((i % 4)) in
+              0) X="(in_w-out_w)*n/1439"; Y="(in_h-out_h)/2" ;;
+              1) X="(in_w-out_w)*(1-n/1439)"; Y="(in_h-out_h)/2" ;;
+              2) X="(in_w-out_w)/2"; Y="(in_h-out_h)*n/1439" ;;
+              3) X="(in_w-out_w)/2"; Y="(in_h-out_h)*(1-n/1439)" ;;
+            esac
+            ffmpeg -hide_banner -loglevel error -y -loop 1 -framerate 24 -i "$img" -t 60               -vf "scale=1408:792:force_original_aspect_ratio=increase,crop=1280:720:x='${X}':y='${Y}',eq=saturation=1.03:contrast=1.01,drawtext=fontfile='${FONT}':text='SOULUME':fontcolor=white@0.78:fontsize=25:x=w-tw-36:y=28,drawtext=fontfile='${FONT}':text='NEW ZEALAND · EPISODE 04':fontcolor=white@0.72:fontsize=13:x=w-tw-36:y=61,drawtext=fontfile='${SCRIPT}':text='S.':fontcolor=white@0.80:fontsize=31:x=w-tw-36:y=86,format=yuv420p"               -an -c:v libx264 -preset ultrafast -crf 30 -maxrate 900k -bufsize 1800k -g 24 -r 24 "$out"
+          }
+          export -f render_one
+          export GITHUB_WORKSPACE
+          seq 0 31 | xargs -P4 -I{} bash -c 'render_one "$1"' _ {}
+
+      - name: Render note clips
+        shell: bash
+        run: |
+          set -euo pipefail
+          notes=(
+          "Some places make you breathe differently"
+          "The lake looked unreal. It was not"
+          "I stayed longer than I planned"
+          "The rain made the town feel softer"
+          "There is no rush here"
+          "I think I needed this silence"
+          "The road kept opening"
+          "Today felt bigger than a photograph"
+          "I forgot to check the time"
+          "Mountains make small thoughts disappear"
+          "I wanted to remember the air"
+          "Nothing was asking me to hurry"
+          "The light changed everything"
+          "This place feels like a secret"
+          "I listened more than I spoke"
+          "The weather changed. So did I"
+          "I did not need a destination today"
+          "Some views do not fit inside a camera"
+          "I think the quiet followed me"
+          "One more road before sunset"
+          "The sky kept getting wider"
+          "I stopped counting the miles"
+          "Maybe the silence was the point"
+          "I will remember this light"
+          )
+          for j in $(seq 0 23); do
+            imgidx=$(( (j*7 + 3) % 32 ))
+            printf -v img "work/images/%02d.jpg" "$imgidx"
+            printf -v out "work/notes/note_%02d.mp4" "$j"
+            txt="${notes[$j]}"
+            FONT="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+            SCRIPT="$GITHUB_WORKSPACE/work/Caveat.ttf"
+            if [ $((j%2)) -eq 0 ]; then NX=42; NY=610; else NX=42; NY=86; fi
+            ffmpeg -hide_banner -loglevel error -y -loop 1 -framerate 24 -i "$img" -t 60               -vf "scale=1408:792:force_original_aspect_ratio=increase,crop=1280:720:x='(in_w-out_w)*n/1439':y='(in_h-out_h)/2',eq=saturation=1.03:contrast=1.01,drawtext=fontfile='${FONT}':text='SOULUME':fontcolor=white@0.78:fontsize=25:x=w-tw-36:y=28,drawtext=fontfile='${FONT}':text='NEW ZEALAND · EPISODE 04':fontcolor=white@0.72:fontsize=13:x=w-tw-36:y=61,drawtext=fontfile='${SCRIPT}':text='S.':fontcolor=white@0.80:fontsize=31:x=w-tw-36:y=86,drawtext=fontfile='${SCRIPT}':text='${txt}':fontcolor=white@0.86:fontsize=38:x=${NX}:y=${NY}:enable='between(t,22,38)',format=yuv420p"               -an -c:v libx264 -preset ultrafast -crf 30 -maxrate 900k -bufsize 1800k -g 24 -r 24 "$out"
+          done
+
+      - name: Build exact 5h55m55s sequence
+        shell: bash
+        run: |
+          set -euo pipefail
           python3 - <<'PY'
-          import json
-          d=json.load(open("work/ffprobe.json"))
+          import random
+          random.seed(404)
+          note_slots={14+15*k:k for k in range(23)}
+          note_slots[344]=23
+          bag=[]
+          items=[]
+          for slot in range(355):
+              if slot in note_slots:
+                  items.append(f"notes/note_{note_slots[slot]:02d}.mp4")
+              else:
+                  if not bag:
+                      bag=list(range(32)); random.shuffle(bag)
+                  items.append(f"clips/base_{bag.pop():02d}.mp4")
+          with open("work/sequence.txt","w") as f:
+              for p in items:
+                  f.write(f"file '{p}'\n")
+          PY
+          ffmpeg -hide_banner -loglevel error -y -i work/clips/base_00.mp4 -t 55 -c copy work/last55.mp4
+          echo "file 'last55.mp4'" >> work/sequence.txt
+          cd work
+          ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i sequence.txt -c copy video_only.mp4
+          cd ..
+
+      - name: Mux audio and verify master
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffmpeg -hide_banner -loglevel error -y             -i work/video_only.mp4 -stream_loop -1 -i work/music_master.m4a             -t 21355 -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 96k -shortest             out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4
+          ffmpeg -hide_banner -loglevel error -y -i out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4 -t 60 -c copy out/SOULUME_EP04_PREVIEW_60S.mp4
+          ffprobe -v error -show_streams -show_format -of json out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4 > out/ffprobe.json
+          python3 - <<'PY'
+          import json, os
+          d=json.load(open("out/ffprobe.json"))
           dur=float(d["format"]["duration"])
-          types={s["codec_type"] for s in d["streams"]}
-          assert 59 <= dur <= 61.5, dur
-          assert "video" in types and "audio" in types, types
-          print("SMOKE VERIFIED", dur, sorted(types))
+          streams=d["streams"]
+          assert abs(dur-21355) < 1.1, dur
+          assert any(s["codec_type"]=="video" for s in streams)
+          assert any(s["codec_type"]=="audio" for s in streams)
+          v=next(s for s in streams if s["codec_type"]=="video")
+          assert int(v["width"])==1280 and int(v["height"])==720
+          print("VERIFIED",dur,os.path.getsize("out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4"))
           PY
 
       - name: Upload preview
         uses: actions/upload-artifact@v4
         with:
-          name: SOULUME_EP04_SMOKE_60S
+          name: SOULUME_EP04_PREVIEW_60S
+          path: out/SOULUME_EP04_PREVIEW_60S.mp4
+          compression-level: 0
+          retention-days: 3
+
+      - name: Upload full master
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOULUME_EP04_NEW_ZEALAND_5H55M55S
           path: |
-            work/SOULUME_EP04_SMOKE_60S.mp4
-            work/ffprobe.json
+            out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4
+            out/ffprobe.json
           compression-level: 0
           retention-days: 3
