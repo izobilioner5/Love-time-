@@ -1,0 +1,98 @@
+name: SOULUME EP04 Metricool Release Handoff
+
+on:
+  push:
+    branches:
+      - soulume-ep04-render
+    paths:
+      - .github/workflows/ep04_metricool_release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  handoff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Wait for Metricool delivery run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID=35776515118
+          for i in $(seq 1 180); do
+            json=$(curl -sSf -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID")
+            status=$(printf '%s' "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d["status"])')
+            conclusion=$(printf '%s' "$json" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("conclusion") or "")')
+            echo "delivery run: $status / $conclusion"
+            if [ "$status" = "completed" ]; then
+              [ "$conclusion" = "success" ] || { echo "Delivery run failed: $conclusion"; exit 1; }
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "Timed out waiting for delivery run"; exit 1
+
+      - name: Download verified delivery artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work receipt
+          RUN_ID=35776515118
+          arts=$(curl -sSf -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/artifacts")
+          aid=$(printf '%s' "$arts" | python3 -c 'import sys,json; d=json.load(sys.stdin); xs=[a for a in d["artifacts"] if a["name"]=="EP04_METRICOOL_4K_UNDER500"]; print(xs[0]["id"] if xs else "")')
+          [ -n "$aid" ] || { echo "Delivery artifact not found"; exit 1; }
+          curl -L --fail --retry 5 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$aid/zip" -o work/delivery.zip
+          unzip -q work/delivery.zip -d work/delivery
+          VIDEO=$(find work/delivery -type f -name 'SOULUME_EP04_NEW_ZEALAND_5H55M55S_METRICOOL_4K.mp4' | head -1)
+          [ -n "$VIDEO" ] || { echo "MP4 missing"; exit 1; }
+          size=$(stat -c%s "$VIDEO")
+          [ "$size" -lt 500000000 ] || { echo "Too large: $size"; exit 1; }
+          cp "$VIDEO" work/SOULUME_EP04_NEW_ZEALAND_5H55M55S_METRICOOL_4K.mp4
+          cp work/delivery/SHA256.txt receipt/SHA256.txt || true
+          echo "$size" > receipt/size_bytes.txt
+
+      - name: Publish direct MP4 as GitHub prerelease asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="soulume-ep04-metricool-final"
+          FILE="work/SOULUME_EP04_NEW_ZEALAND_5H55M55S_METRICOOL_4K.mp4"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$FILE" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "$FILE" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --prerelease \
+              --title "SOULUME Episode 04 Metricool delivery" \
+              --notes "Verified 4K 5:55:55 delivery master for SOULUME Episode 04 publication."
+          fi
+          URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/SOULUME_EP04_NEW_ZEALAND_5H55M55S_METRICOOL_4K.mp4"
+          echo "$URL" | tee receipt/public_url.txt
+
+      - name: Verify direct MP4 URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL=$(cat receipt/public_url.txt)
+          curl -L --fail --retry 5 --range 0-1048575 "$URL" -o receipt/head.bin
+          test "$(stat -c%s receipt/head.bin)" -gt 100000
+          echo "HANDOFF_OK" > receipt/status.txt
+          rm receipt/head.bin
+
+      - name: Upload handoff receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: EP04_METRICOOL_RELEASE_RECEIPT
+          path: receipt/
+          retention-days: 2
