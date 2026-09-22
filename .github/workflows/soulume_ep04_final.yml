@@ -74,32 +74,32 @@ jobs:
           done
           echo "visuals=$i"
 
-      - name: Download music immediately
+      - name: Build stable music master from approved pilots
         shell: bash
         run: |
           set -euo pipefail
-          music=(
-          "https://storage.googleapis.com/bgm-tracks-background-music-mcp/tracks/sess_cbaf0946a21a2c31/01.mp3?X-Go-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=bgm-run-sa%40background-music-mcp.iam.gserviceaccount.com%2F20260922%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260922T134919Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&X-Goog-Signature=38adf911c1933b368ec73d6a740571f7f3eed2d257b730d16514871b498c608ebd1a9d76020d5bd1cd87975bdfb18af8cc1fb95b100eb1e0f361ab68f836198653568c4abecaae408d451c38df50acb94b4a209aabfeb31a4642ef1acf1ca3430f37c11194049c1cb35f08fee73aa3865a78b241737c9a62a68477144607340bcb71a816ca89ee58b8fe857d4f4d3814d584e06ccacdd3f5b02ad765948b3b2b3068063fee00ee803445e2a2b72497af7f8b82a8114edfe02b49a9ee25be761a9af0e6e734ff50b0b33cb3e223cf2cb6637e0248cbd3534e04755aaae8f75ecd9492d37894ba74da3bd34ec9c618cb7c9704800fb7cc8747e335b4437858befe"
-          "https://storage.googleapis.com/bgm-tracks-background-music-mcp/tracks/sess_562c7c3d51587923/01.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=bgm-run-sa%40background-music-mcp.iam.gserviceaccount.com%2F20260922%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260922T135020Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&X-Goog-Signature=a336f1845cb651c7e5d2e825e67f9e5f6dad86f2ca50e5cd7a77744134905a62fa6b7e62996f4b862755e8c335bc8339c93e247d7a82a7992c1a16e22a35c4e9b274b8b9c747e7d61f3a0d82cb41c10d8684a811091b1c3de1781f01b1efa170fa721c1de448be7c84ace5945e16c26ed2842dad1693f1b5a513928e47f78b972c175ddb3b4079843e64b470c7c88ad3db8006be2a52177bbcaa2e04c1ffb51f2541109322a285e090a2404f3332ec9a6106abe1c76b24ac2876a87249934949a4e139de294c8425c48026da31c65429d0fa78744f132f08ffc05afd4a0800cf1554973449051b8b43e7eb3352502d562c46d37d315632b67824cfa2e0a49057"
-          "https://storage.googleapis.com/bgm-tracks-background-music-mcp/tracks/sess_d6e9a419f9a1081c/01.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=bgm-run-sa%40background-music-mcp.iam.gserviceaccount.com%2F20260922%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260922T135058Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&X-Goog-Signature=4c626080df99fb44ff4a8c0e924b8a9cac36632580775691bb2c338e67d450ea7c6debd35195dd17bdc1f196877ff1a8890b61fbbb5e65eb62cc94229510a281f1197e0686cec339ca8f5af299bfbd8c2e2ff657998b48dba58b37778a76f4375a7d3513759f05729f8b2e258d478363477419609e09bd32283eb50b78ab5e13c166d630d93c7a3113fc9c6dc7fd0a89233856c9fd3e7a3928f04ae827dd8a8d6c9d8f9cb7cf8a8a2ea6ddadbeb7356b864afb6c5ef31998a5b4d54e89e76ac6909e340d275a5ab0ad6842029a4fb6a1d0b96ce65e8df19df95bb9ad414383df612b9183888b7f747db50cb366134992a4e695b549b2c850671bbd3f0f041322"
-          "https://storage.googleapis.com/bgm-tracks-background-music-mcp/tracks/sess_a7664a20c5d671c5/01.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=bgm-run-sa%40background-music-mcp.iam.gserviceaccount.com%2F20260922%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260922T135240Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&X-Goog-Signature=b7845e23658e716ac7bc6d3aaafb6332de1a317b05d0b4c0513909216bc8dcc7f1c813d2a7cd8e1e4ef584109f3fb5b03d6fac5f5dc55f18ff397ee83e80a4ea7f398364d5044b90635c712d203bce0cc73f7454b48a066147de5576e8f74332a825b2762712afb1ce1d5e512b54b8e403dc3e8d1e42a7f6f2525a1dfe74d6c81afe0bf34781edc69c4de6e38f81e07832114702d1e64bb129b52a588a2491672ead7a227c1ad806aa56cde5662f3ec2f7958a705a985ceadcf1c6621f59089416cffc0be94fa4d0edd2dd50d19d0903bc516bd2b76e43c483f6e756e6e31702b06bbe94dee009564ab4b419199f3cabd4e7ce25a26e66cfba99532e6d975927"
-          "https://storage.googleapis.com/bgm-tracks-background-music-mcp/tracks/sess_fc8f91c242b68fe6/01.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=bgm-run-sa%40background-music-mcp.iam.gserviceaccount.com%2F20260922%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260922T135335Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&X-Goog-Signature=6e52d394a562d4e6a590db5ba04036143ae11c048e596adf534bd74c050c09a556fe31628ef86585117f7a5ca1d3188c5ec2646d19a3e7e330eacd1af845651aca4ac454655814b339a9c4c5bb808636a046cb7223a1cea882f379bf3b607c65cb9b98da5234748d9d6301fc4e1fddb86250cd9c7d09a3f825fed30611b0c917592bc498029242ff833cdb0a8a30df679c9762d9205058da96a5460337a71bd74cbd225e6ad890708c000e21459619ae20009b022ae44d2a38a5a8755b8cf9d01fd13b572b74e8e68b19db1f38152f03f66e26fc809e9f6034b48fbc9319042cf9672725b4860985f3e92845bee5d93d4d84ef03d67e0cf3b3594935dd97d63d"
+          mkdir -p work/music_src
+          urls=(
+          "https://gcdn.picsart.com/media-engine/85fe0cbc-8927-476c-989a-fc923271bd2d.mp4"
+          "https://gcdn.picsart.com/media-engine/bedfa653-3b00-4e36-8dff-62c9e8374d3b.mp4"
+          "https://gcdn.picsart.com/media-engine/0b68392b-1b3c-4822-afcb-7f32c4489fb5.mp4"
+          "https://gcdn.picsart.com/media-engine/a641ec17-ec0b-4ca5-a680-e4c3590f2943.mp4"
+          "https://gcdn.picsart.com/media-engine/6335dabf-cd71-4527-a7aa-755e4e6fc65f.mp4"
+          "https://gcdn.picsart.com/media-engine/11274e87-e3e1-4e51-92c8-1b3de01cc7f5.mp4"
           )
           i=0
-          for u in "${music[@]}"; do
-            printf -v f "work/music_%02d.mp3" "$i"
-            curl -L --fail --retry 4 "$u" -o "$f"
-            test -s "$f"
+          for u in "${urls[@]}"; do
+            printf -v v "work/music_src/pilot_%02d.mp4" "$i"
+            printf -v a "work/music_src/audio_%02d.m4a" "$i"
+            curl -L --fail --retry 4 --retry-delay 1 "$u" -o "$v"
+            ffmpeg -hide_banner -loglevel error -y -i "$v" -vn -c:a aac -b:a 128k "$a"
+            test -s "$a"
             i=$((i+1))
           done
-
-      - name: Build music master
-        shell: bash
-        run: |
-          set -euo pipefail
-          printf "" > work/music_list.txt
-          for f in work/music_*.mp3; do echo "file '$GITHUB_WORKSPACE/$f'" >> work/music_list.txt; done
+          : > work/music_list.txt
+          for a in work/music_src/audio_*.m4a; do echo "file '$GITHUB_WORKSPACE/$a'" >> work/music_list.txt; done
           ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i work/music_list.txt -c:a aac -b:a 112k work/music_master.m4a
+          ffprobe -v error -show_entries format=duration -of default=nk=1:nw=1 work/music_master.m4a
 
       - name: Make natural moving clips
         shell: bash
