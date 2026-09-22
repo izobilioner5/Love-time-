@@ -1,0 +1,42 @@
+{
+  "episode": 5,
+  "status": "BRIEF",
+  "architect_brief": {},
+  "spec": {},
+  "canon": {
+    "backward_links": [],
+    "forward_seeds": [],
+    "new_symbols": [],
+    "s_realization": ""
+  },
+  "production": {
+    "audio_assets": [],
+    "visual_assets": [],
+    "master_file": null,
+    "qa_report": null
+  },
+  "package": {
+    "title_en": "",
+    "title_ru": "",
+    "description_en": "",
+    "description_ru": "",
+    "thumbnail": null,
+    "first_comment_en": "",
+    "first_comment_ru": "",
+    "tags": []
+  },
+  "publication": {
+    "status": "NOT_STARTED",
+    "youtube_url": null,
+    "published_at": null
+  },
+  "analytics": {
+    "24h": null,
+    "72h": null,
+    "7d": null
+  },
+  "decision": {
+    "primary_bottleneck": null,
+    "next_test": null
+  }
+}
