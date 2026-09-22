@@ -1,4 +1,4 @@
-name: SOULUME Episode 04 Preview V2
+name: SOULUME Episode 04 Preview V3
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
       - name: Install ffmpeg
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg curl unzip
 
-      - name: Download final master and make review preview
+      - name: Build corrected 3-minute review from final master
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -28,29 +28,29 @@ jobs:
           RUN_ID=35743546722
           arts=$(curl -sSf -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/artifacts")
           aid=$(printf '%s' "$arts" | python3 -c 'import sys,json; d=json.load(sys.stdin); xs=[a for a in d["artifacts"] if a["name"]=="SOULUME_EP04_NEW_ZEALAND_5H55M55S"]; print(xs[0]["id"] if xs else "")')
-          [ -n "$aid" ] || { echo "Master artifact not found"; exit 1; }
-          curl -L --fail --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$aid/zip" -o master.zip
+          [ -n "$aid" ] || exit 1
+          curl -L --fail --retry 3 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$aid/zip" -o master.zip
           mkdir master out
           unzip -q master.zip -d master
           src=$(find master -type f -name 'SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4' | head -n1)
           [ -n "$src" ] || exit 1
 
-          # 3-minute sample centered near the middle. Re-encode to a lightweight 720p review file.
-          # Loudness target for YouTube review: -14 LUFS integrated, true peak <= -1.5 dBTP.
-          ffmpeg -hide_banner -y -ss 02:56:30 -i "$src" -t 180             -vf "scale=-2:720"             -c:v libx264 -preset veryfast -crf 27 -r 24             -c:a aac -b:a 192k -ar 48000             -af "loudnorm=I=-14:LRA=11:TP=-1.5"             -movflags +faststart out/SOULUME_EP04_MIDDLE_REVIEW_3MIN_720P.mp4
+          # Pick three 55-second interiors, avoiding the exact 60-second cut boundaries.
+          # Crossfade them for 5 seconds to eliminate hard-cut decoder flashes.
+          # Audio: deliberately louder review target, -9 LUFS, peak ceiling -0.5 dB.
+          ffmpeg -hide_banner -y             -ss 02:55:05 -t 60 -i "$src"             -ss 02:56:05 -t 60 -i "$src"             -ss 02:57:05 -t 60 -i "$src"             -filter_complex "              [0:v]scale=-2:720,format=yuv420p,setpts=PTS-STARTPTS[v0];              [1:v]scale=-2:720,format=yuv420p,setpts=PTS-STARTPTS[v1];              [2:v]scale=-2:720,format=yuv420p,setpts=PTS-STARTPTS[v2];              [v0][v1]xfade=transition=fade:duration=5:offset=55[v01];              [v01][v2]xfade=transition=fade:duration=5:offset=110[v];              [0:a]asetpts=PTS-STARTPTS[a0];              [1:a]asetpts=PTS-STARTPTS[a1];              [2:a]asetpts=PTS-STARTPTS[a2];              [a0][a1]acrossfade=d=5:c1=tri:c2=tri[a01];              [a01][a2]acrossfade=d=5:c1=tri:c2=tri,volume=6dB,alimiter=limit=0.944:attack=5:release=50[a]"             -map "[v]" -map "[a]" -t 170             -c:v libx264 -preset veryfast -crf 25 -r 24             -c:a aac -b:a 256k -ar 48000             -movflags +faststart out/SOULUME_EP04_REVIEW_V3_LOUD_SMOOTH.mp4
 
-          ffprobe -v error -show_entries stream=index,codec_type,codec_name,width,height,sample_rate,channels:format=duration,size -of json             out/SOULUME_EP04_MIDDLE_REVIEW_3MIN_720P.mp4 > out/ffprobe.json
-          ffmpeg -hide_banner -i out/SOULUME_EP04_MIDDLE_REVIEW_3MIN_720P.mp4             -af loudnorm=I=-14:LRA=11:TP=-1.5:print_format=summary -f null - 2> out/loudness.txt || true
-          cat out/ffprobe.json
-          tail -30 out/loudness.txt
+          ffprobe -v error -show_entries stream=index,codec_type,codec_name,width,height,sample_rate,channels:format=duration,size -of json out/SOULUME_EP04_REVIEW_V3_LOUD_SMOOTH.mp4 > out/ffprobe.json
+          ffmpeg -hide_banner -i out/SOULUME_EP04_REVIEW_V3_LOUD_SMOOTH.mp4 -af volumedetect -f null - 2> out/volume.txt || true
+          grep -E "mean_volume|max_volume" out/volume.txt || true
 
-      - name: Upload review preview
+      - name: Upload corrected review
         uses: actions/upload-artifact@v4
         with:
-          name: SOULUME_EP04_MIDDLE_REVIEW_3MIN_720P
+          name: SOULUME_EP04_REVIEW_V3_LOUD_SMOOTH
           path: |
-            out/SOULUME_EP04_MIDDLE_REVIEW_3MIN_720P.mp4
+            out/SOULUME_EP04_REVIEW_V3_LOUD_SMOOTH.mp4
             out/ffprobe.json
-            out/loudness.txt
+            out/volume.txt
           compression-level: 0
           retention-days: 3
