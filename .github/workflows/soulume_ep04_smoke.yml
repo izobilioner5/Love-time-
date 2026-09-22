@@ -1,4 +1,4 @@
-name: SOULUME Episode 04 Full FFmpeg Render
+name: SOULUME Episode 04 FINAL 4K Render
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     steps:
       - name: Install ffmpeg
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core curl
@@ -116,41 +116,41 @@ jobs:
               2) X="(in_w-out_w)/2"; Y="(in_h-out_h)*n/1439" ;;
               3) X="(in_w-out_w)/2"; Y="(in_h-out_h)*(1-n/1439)" ;;
             esac
-            ffmpeg -hide_banner -loglevel error -y -loop 1 -framerate 24 -i "$img" -t 60               -vf "scale=1408:792:force_original_aspect_ratio=increase,crop=1280:720:x='${X}':y='${Y}',eq=saturation=1.03:contrast=1.01,drawtext=fontfile='${FONT}':text='SOULUME':fontcolor=white@0.78:fontsize=25:x=w-tw-36:y=28,drawtext=fontfile='${FONT}':text='NEW ZEALAND · EPISODE 04':fontcolor=white@0.72:fontsize=13:x=w-tw-36:y=61,drawtext=fontfile='${SCRIPT}':text='S.':fontcolor=white@0.80:fontsize=31:x=w-tw-36:y=86,format=yuv420p"               -an -c:v libx264 -preset ultrafast -crf 30 -maxrate 900k -bufsize 1800k -g 24 -r 24 "$out"
+            ffmpeg -hide_banner -loglevel error -y -loop 1 -framerate 24 -i "$img" -t 60               -vf "scale=4224:2376:force_original_aspect_ratio=increase,crop=3840:2160:x='${X}':y='${Y}',eq=saturation=1.03:contrast=1.01,drawtext=fontfile='${FONT}':text='SOULUME':fontcolor=white@0.78:fontsize=75:x=w-tw-108:y=84,drawtext=fontfile='${FONT}':text='NEW ZEALAND · EPISODE 04':fontcolor=white@0.72:fontsize=39:x=w-tw-108:y=183,drawtext=fontfile='${SCRIPT}':text='S.':fontcolor=white@0.80:fontsize=93:x=w-tw-108:y=258,format=yuv420p"               -an -c:v libx264 -preset ultrafast -crf 34 -maxrate 2200k -bufsize 4400k -g 24 -r 24 "$out"
           }
           export -f render_one
           export GITHUB_WORKSPACE
-          seq 0 31 | xargs -P4 -I{} bash -c 'render_one "$1"' _ {}
+          seq 0 31 | xargs -P2 -I{} bash -c 'render_one "$1"' _ {}
 
       - name: Render note clips
         shell: bash
         run: |
           set -euo pipefail
           notes=(
-          "Some places make you breathe differently"
-          "The lake looked unreal. It was not"
-          "I stayed longer than I planned"
-          "The rain made the town feel softer"
-          "There is no rush here"
-          "I think I needed this silence"
-          "The road kept opening"
-          "Today felt bigger than a photograph"
-          "I forgot to check the time"
-          "Mountains make small thoughts disappear"
-          "I wanted to remember the air"
-          "Nothing was asking me to hurry"
-          "The light changed everything"
-          "This place feels like a secret"
-          "I listened more than I spoke"
-          "The weather changed. So did I"
-          "I did not need a destination today"
-          "Some views do not fit inside a camera"
-          "I think the quiet followed me"
-          "One more road before sunset"
-          "The sky kept getting wider"
-          "I stopped counting the miles"
-          "Maybe the silence was the point"
-          "I will remember this light"
+          "The farther I went, the bigger the world became ♡"
+          "Every turn opened another horizon"
+          "The road kept making the map feel larger"
+          "I came for a place. I found a whole world"
+          "Some distances make you feel more alive"
+          "One valley ended and another began"
+          "I wanted to see what was beyond the next ridge"
+          "New Zealand kept unfolding"
+          "The world felt bigger here"
+          "Freedom looked like an empty road"
+          "Every horizon made me want to keep going"
+          "I stopped asking how far"
+          "Another lake. Another reason to stay curious"
+          "The mountains made the day feel enormous"
+          "I followed the road without needing the answer"
+          "Some places expand you quietly"
+          "The weather changed and the landscape opened again"
+          "I kept finding more than I expected"
+          "The farther south I went, the wider everything felt"
+          "I wanted to photograph the scale, not just the view"
+          "There was always another road"
+          "I think this is what freedom looks like"
+          "The map was smaller than the feeling"
+          "I do not think the world is meant to feel small"
           )
           for j in $(seq 0 23); do
             imgidx=$(( (j*7 + 3) % 32 ))
@@ -159,9 +159,19 @@ jobs:
             txt="${notes[$j]}"
             FONT="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
             SCRIPT="$GITHUB_WORKSPACE/work/Caveat.ttf"
-            if [ $((j%2)) -eq 0 ]; then NX=42; NY=610; else NX=42; NY=86; fi
-            ffmpeg -hide_banner -loglevel error -y -loop 1 -framerate 24 -i "$img" -t 60               -vf "scale=1408:792:force_original_aspect_ratio=increase,crop=1280:720:x='(in_w-out_w)*n/1439':y='(in_h-out_h)/2',eq=saturation=1.03:contrast=1.01,drawtext=fontfile='${FONT}':text='SOULUME':fontcolor=white@0.78:fontsize=25:x=w-tw-36:y=28,drawtext=fontfile='${FONT}':text='NEW ZEALAND · EPISODE 04':fontcolor=white@0.72:fontsize=13:x=w-tw-36:y=61,drawtext=fontfile='${SCRIPT}':text='S.':fontcolor=white@0.80:fontsize=31:x=w-tw-36:y=86,drawtext=fontfile='${SCRIPT}':text='${txt}':fontcolor=white@0.86:fontsize=38:x=${NX}:y=${NY}:enable='between(t,22,38)',format=yuv420p"               -an -c:v libx264 -preset ultrafast -crf 30 -maxrate 900k -bufsize 1800k -g 24 -r 24 "$out"
+            if [ $((j%2)) -eq 0 ]; then NX=126; NY=1830; else NX=126; NY=258; fi
+            ffmpeg -hide_banner -loglevel error -y -loop 1 -framerate 24 -i "$img" -t 60               -vf "scale=4224:2376:force_original_aspect_ratio=increase,crop=3840:2160:x='(in_w-out_w)*n/1439':y='(in_h-out_h)/2',eq=saturation=1.03:contrast=1.01,drawtext=fontfile='${FONT}':text='SOULUME':fontcolor=white@0.78:fontsize=75:x=w-tw-108:y=84,drawtext=fontfile='${FONT}':text='NEW ZEALAND · EPISODE 04':fontcolor=white@0.72:fontsize=39:x=w-tw-108:y=183,drawtext=fontfile='${SCRIPT}':text='S.':fontcolor=white@0.80:fontsize=93:x=w-tw-108:y=258,drawtext=fontfile='${SCRIPT}':text='${txt}':fontcolor=white@0.86:fontsize=108:x=${NX}:y=${NY}:enable='between(t,22,38)',format=yuv420p"               -an -c:v libx264 -preset ultrafast -crf 34 -maxrate 2200k -bufsize 4400k -g 24 -r 24 "$out"
           done
+
+      - name: Render fixed 20-second outro
+        shell: bash
+        run: |
+          set -euo pipefail
+          FONT="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+          SCRIPT="$GITHUB_WORKSPACE/work/Caveat.ttf"
+          ffmpeg -hide_banner -loglevel error -y -loop 1 -framerate 24 -i work/images/11.jpg -t 20 \
+            -vf "scale=4224:2376:force_original_aspect_ratio=increase,crop=3840:2160,eq=saturation=1.03:contrast=1.01,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.32:t=fill,drawtext=fontfile='${FONT}':text='There is still so much more to see.':fontcolor=white@0.92:fontsize=92:x=(w-tw)/2:y=(h-th)/2-80:enable='between(t,0,6.7)',drawtext=fontfile='${FONT}':text='Come with me to the next place ♡':fontcolor=white@0.92:fontsize=86:x=(w-tw)/2:y=(h-th)/2-80:enable='between(t,6.7,13.4)',drawtext=fontfile='${SCRIPT}':text='S.':fontcolor=white@0.94:fontsize=150:x=(w-tw)/2:y=(h-th)/2-40:enable='between(t,13.4,20)',format=yuv420p" \
+            -an -c:v libx264 -preset ultrafast -crf 34 -maxrate 2200k -bufsize 4400k -g 24 -r 24 work/outro20.mp4
 
       - name: Build exact 5h55m55s sequence
         shell: bash
@@ -185,9 +195,10 @@ jobs:
               for p in items:
                   f.write(f"file '{p}'\n")
           PY
-          ffmpeg -hide_banner -loglevel error -y -i work/clips/base_00.mp4 -t 55 -c copy work/last55.mp4
-          echo "file 'last55.mp4'" >> work/sequence.txt
+          ffmpeg -hide_banner -loglevel error -y -i work/clips/base_00.mp4 -t 35 -c copy work/last35.mp4
+          echo "file 'last35.mp4'" >> work/sequence.txt
           cd work
+          echo "file 'outro20.mp4'" >> sequence.txt
           ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i sequence.txt -c copy video_only.mp4
           cd ..
 
@@ -195,7 +206,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ffmpeg -hide_banner -loglevel error -y             -i work/video_only.mp4 -stream_loop -1 -i work/music_master.m4a             -t 21355 -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 96k -shortest             out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4
+          ffmpeg -hide_banner -loglevel error -y             -i work/video_only.mp4 -stream_loop -1 -i work/music_master.m4a             -t 21355 -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 128k -af "afade=t=in:st=0:d=2,afade=t=out:st=21345:d=10" -shortest             out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4
           ffmpeg -hide_banner -loglevel error -y -i out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4 -t 60 -c copy out/SOULUME_EP04_PREVIEW_60S.mp4
           ffprobe -v error -show_streams -show_format -of json out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4 > out/ffprobe.json
           python3 - <<'PY'
@@ -207,9 +218,17 @@ jobs:
           assert any(s["codec_type"]=="video" for s in streams)
           assert any(s["codec_type"]=="audio" for s in streams)
           v=next(s for s in streams if s["codec_type"]=="video")
-          assert int(v["width"])==1280 and int(v["height"])==720
-          print("VERIFIED",dur,os.path.getsize("out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4"))
+          assert int(v["width"])==3840 and int(v["height"])==2160
+          print("VERIFIED 4K MASTER",dur,os.path.getsize("out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4"))
           PY
+
+      - name: Audio continuity QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffmpeg -hide_banner -i out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4 -af silencedetect=noise=-50dB:d=8 -f null - 2> out/silence.log || true
+          ffmpeg -hide_banner -i out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4 -af volumedetect -f null - 2> out/volume.log || true
+          grep -E "mean_volume|max_volume" out/volume.log || true
 
       - name: Upload preview
         uses: actions/upload-artifact@v4
@@ -226,5 +245,7 @@ jobs:
           path: |
             out/SOULUME_EP04_NEW_ZEALAND_5H55M55S.mp4
             out/ffprobe.json
+            out/silence.log
+            out/volume.log
           compression-level: 0
           retention-days: 3
