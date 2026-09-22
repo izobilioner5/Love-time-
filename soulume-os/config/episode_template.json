@@ -1,6 +1,7 @@
 {
   "episode": 5,
   "location": "COUNTRY / LOCATION",
+  "project_root": "..",
   "architect_intent": {
     "observations": ["thing 1", "thing 2", "thing 3"],
     "realization": "what S. understands here",
