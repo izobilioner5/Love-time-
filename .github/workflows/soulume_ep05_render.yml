@@ -78,8 +78,8 @@ jobs:
         run: |
           set -euo pipefail
           TAG="soulume-ep05-japan-temp"
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --target "$GITHUB_SHA" --prerelease --title "SOULUME EP05 Japan — media handoff" --notes "Temporary automated media handoff for publishing."
-          gh release upload "$TAG" SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4 --clobber
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title "SOULUME EP05 Japan — media handoff" --notes "Temporary automated media handoff for publishing."
+          gh release upload "$TAG" SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4 --repo "$GITHUB_REPOSITORY" --clobber
           echo "ASSET_URL=https://github.com/${GITHUB_REPOSITORY}/releases/download/$TAG/SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4"
 
       - name: Upload fallback artifact
