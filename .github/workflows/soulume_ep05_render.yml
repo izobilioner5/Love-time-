@@ -7,17 +7,18 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   render:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Check tools
+      - name: Install media tools
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
           ffmpeg -version | head -n 1
-          ffprobe -version | head -n 1
 
       - name: Download rendered parts
         shell: bash
@@ -43,34 +44,45 @@ jobs:
           for url in "${urls[@]}"; do
             f=$(printf "parts/part_%02d.mp4" "$i")
             curl -L --fail --retry 4 --retry-delay 2 "$url" -o "$f"
-            ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$f"
             printf "file '%s'\n" "$(basename "$f")" >> parts/concat.txt
             i=$((i+1))
           done
 
-      - name: Concatenate one-hour master
+      - name: Build and verify one-hour master
         shell: bash
         run: |
           set -euo pipefail
           cd parts
-          ffmpeg -hide_banner -y -f concat -safe 0 -i concat.txt -c copy -movflags +faststart ../SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4
+          ffmpeg -hide_banner -y -f concat -safe 0 -i concat.txt \
+            -c:v libx264 -preset veryfast -crf 24 -pix_fmt yuv420p -r 1 \
+            -c:a aac -b:a 192k -ar 48000 \
+            -movflags +faststart ../SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4
           cd ..
-          duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4)
-          echo "duration=$duration"
           python3 - <<'PY'
-          import subprocess, sys
+          import subprocess
           p="SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4"
           d=float(subprocess.check_output(["ffprobe","-v","error","-show_entries","format=duration","-of","default=nw=1:nk=1",p], text=True).strip())
+          streams=subprocess.check_output(["ffprobe","-v","error","-show_entries","stream=codec_type","-of","csv=p=0",p], text=True).split()
           if not (3598 <= d <= 3602):
               raise SystemExit(f"Unexpected duration: {d}")
-          streams=subprocess.check_output(["ffprobe","-v","error","-show_entries","stream=codec_type","-of","csv=p=0",p], text=True).split()
           if "video" not in streams or "audio" not in streams:
               raise SystemExit(f"Missing stream: {streams}")
           print("QA OK", d, streams)
           PY
+          ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate -show_entries format=duration,size -of json SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4
           ls -lh SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4
 
-      - name: Upload final master
+      - name: Publish temporary handoff release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="soulume-ep05-japan-temp"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --target "$GITHUB_SHA" --prerelease --title "SOULUME EP05 Japan — media handoff" --notes "Temporary automated media handoff for publishing."
+          gh release upload "$TAG" SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4 --clobber
+          echo "ASSET_URL=https://github.com/${GITHUB_REPOSITORY}/releases/download/$TAG/SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4"
+
+      - name: Upload fallback artifact
         uses: actions/upload-artifact@v4
         with:
           name: SOULUME_EP05_JAPAN_1H_SOUL_FINAL
