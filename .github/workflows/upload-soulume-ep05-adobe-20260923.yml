@@ -22,39 +22,12 @@ jobs:
           mkdir blocks
           split -b 52428800 -d -a 2 master.mp4 blocks/block_
           test "$(find blocks -type f | wc -l)" = "24"
-          ls -lh blocks
 
       - name: Upload blocks
         shell: bash
         run: |
           set -euo pipefail
-          cat > adobe_urls.txt <<'EOF'
-https://at.adobe.com/MHNFrYwwgGHTgHEP
-https://at.adobe.com/kdtwO4Li8EpWAjt3
-https://at.adobe.com/EC3pk89Gu6Q6mcv6
-https://at.adobe.com/PBjsuls8yIlEYLxF
-https://at.adobe.com/ISTFcGUaYe5xGwnT
-https://at.adobe.com/siN4VLNmEVzuGcNJ
-https://at.adobe.com/YcEDSX5uhmG4Nrdd
-https://at.adobe.com/z0zvI91QVpIkwY8f
-https://at.adobe.com/q6uofpeaOr5Mxz4E
-https://at.adobe.com/Jc0EIEYhWw074AUi
-https://at.adobe.com/IgK1uyoCya5TIA76
-https://at.adobe.com/yjIa0iCxNS8N1zYO
-https://at.adobe.com/xzErzmFjckkzJNYb
-https://at.adobe.com/xZfUeGREjbF36mQC
-https://at.adobe.com/YHkeAoOmNlibeoOT
-https://at.adobe.com/5XLyRGCFitLiBcdY
-https://at.adobe.com/ceIAFJqI0UPsrS0z
-https://at.adobe.com/Dw1rxEJCe3rDBbf8
-https://at.adobe.com/znRovY1uTb0vL0KC
-https://at.adobe.com/JrF7TgoITm8nJ1O9
-https://at.adobe.com/t5b5sxKoe4KkQYDI
-https://at.adobe.com/zfQ0nzuDxIIOnrEW
-https://at.adobe.com/aWBQNAf6gRNZKXhW
-https://at.adobe.com/oOVR6XfNYP4J2M6I
-EOF
-          mapfile -t URLS < adobe_urls.txt
+          URLS=('https://at.adobe.com/MHNFrYwwgGHTgHEP' 'https://at.adobe.com/kdtwO4Li8EpWAjt3' 'https://at.adobe.com/EC3pk89Gu6Q6mcv6' 'https://at.adobe.com/PBjsuls8yIlEYLxF' 'https://at.adobe.com/ISTFcGUaYe5xGwnT' 'https://at.adobe.com/siN4VLNmEVzuGcNJ' 'https://at.adobe.com/YcEDSX5uhmG4Nrdd' 'https://at.adobe.com/z0zvI91QVpIkwY8f' 'https://at.adobe.com/q6uofpeaOr5Mxz4E' 'https://at.adobe.com/Jc0EIEYhWw074AUi' 'https://at.adobe.com/IgK1uyoCya5TIA76' 'https://at.adobe.com/yjIa0iCxNS8N1zYO' 'https://at.adobe.com/xzErzmFjckkzJNYb' 'https://at.adobe.com/xZfUeGREjbF36mQC' 'https://at.adobe.com/YHkeAoOmNlibeoOT' 'https://at.adobe.com/5XLyRGCFitLiBcdY' 'https://at.adobe.com/ceIAFJqI0UPsrS0z' 'https://at.adobe.com/Dw1rxEJCe3rDBbf8' 'https://at.adobe.com/znRovY1uTb0vL0KC' 'https://at.adobe.com/JrF7TgoITm8nJ1O9' 'https://at.adobe.com/t5b5sxKoe4KkQYDI' 'https://at.adobe.com/zfQ0nzuDxIIOnrEW' 'https://at.adobe.com/aWBQNAf6gRNZKXhW' 'https://at.adobe.com/oOVR6XfNYP4J2M6I')
           mapfile -t PARTS < <(find blocks -type f | sort)
           test "${#URLS[@]}" = "24"
           test "${#PARTS[@]}" = "24"
