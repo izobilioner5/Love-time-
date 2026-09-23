@@ -22,10 +22,11 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg
 
-      - name: Decode approved thumbnail
+      - name: Download approved thumbnail
         run: |
-          base64 -d tmp/soulume_ep05_thumb_20260923.b64 > SOULUME_EP05_JAPAN_THUMB.jpg
-          file SOULUME_EP05_JAPAN_THUMB.jpg
+          curl -L --fail --retry 5 'https://at.adobe.com/aJJrCvnYohdSwHs1' -o SOULUME_EP05_JAPAN_THUMB.png
+          file SOULUME_EP05_JAPAN_THUMB.png
+          test -s SOULUME_EP05_JAPAN_THUMB.png
 
       - name: Download rendered 10-minute chapters
         shell: bash
@@ -60,9 +61,8 @@ jobs:
           ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels -of default=nw=1 SOULUME_EP05_JAPAN_1H_FINAL.mp4
           awk -v d="$DURATION" 'BEGIN { if (d < 3598 || d > 3602) exit 1; }'
           test -s SOULUME_EP05_JAPAN_1H_FINAL.mp4
-          test -s SOULUME_EP05_JAPAN_THUMB.jpg
           echo "QA PASS" >> qa.txt
-          ls -lh SOULUME_EP05_JAPAN_1H_FINAL.mp4 SOULUME_EP05_JAPAN_THUMB.jpg
+          ls -lh SOULUME_EP05_JAPAN_1H_FINAL.mp4 SOULUME_EP05_JAPAN_THUMB.png
 
       - name: Publish production assets as release
         env:
@@ -72,4 +72,4 @@ jobs:
           set -euo pipefail
           TAG='soulume-ep05-japan-20260923-v1'
           gh release delete "$TAG" --cleanup-tag -y --repo "$GITHUB_REPOSITORY" || true
-          gh release create "$TAG" SOULUME_EP05_JAPAN_1H_FINAL.mp4 SOULUME_EP05_JAPAN_THUMB.jpg qa.txt --repo "$GITHUB_REPOSITORY" --title 'SOULUME 05 — JAPAN — 1H FINAL' --notes 'Production-ready master and thumbnail for SOULUME Episode 05 Japan.'
+          gh release create "$TAG" SOULUME_EP05_JAPAN_1H_FINAL.mp4 SOULUME_EP05_JAPAN_THUMB.png qa.txt --repo "$GITHUB_REPOSITORY" --title 'SOULUME 05 — JAPAN — 1H FINAL' --notes 'Production-ready master and approved thumbnail for SOULUME Episode 05 Japan.'
