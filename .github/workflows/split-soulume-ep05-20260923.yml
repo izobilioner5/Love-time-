@@ -1,0 +1,49 @@
+name: Split SOULUME EP05 Final
+
+on:
+  push:
+    paths:
+      - '.github/workflows/split-soulume-ep05-20260923.yml'
+
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download final video
+        run: |
+          curl -L --fail --retry 5 'https://github.com/izobilioner5/Love-time-/releases/download/soulume-ep05-japan-20260923-v1/SOULUME_EP05_JAPAN_1H_FINAL.mp4' -o SOULUME_EP05_JAPAN_1H_FINAL.mp4
+          split -b 300M SOULUME_EP05_JAPAN_1H_FINAL.mp4 SOULUME_EP05.part.
+          ls -lh SOULUME_EP05.part.*
+
+      - name: Upload part aa
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOULUME_EP05_PART_AA
+          path: SOULUME_EP05.part.aa
+          compression-level: 0
+          retention-days: 3
+
+      - name: Upload part ab
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOULUME_EP05_PART_AB
+          path: SOULUME_EP05.part.ab
+          compression-level: 0
+          retention-days: 3
+
+      - name: Upload part ac
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOULUME_EP05_PART_AC
+          path: SOULUME_EP05.part.ac
+          compression-level: 0
+          retention-days: 3
+
+      - name: Upload part ad
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOULUME_EP05_PART_AD
+          path: SOULUME_EP05.part.ad
+          compression-level: 0
+          retention-days: 3
