@@ -1,0 +1,79 @@
+name: SOULUME EP05 Japan Render
+
+on:
+  push:
+    branches:
+      - soulume-render-ep05
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check tools
+        run: |
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
+
+      - name: Download rendered parts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p parts
+          urls=(
+            "https://gcdn.picsart.com/media-engine/a819b289-9cd0-4419-b562-689f2d3ea2c9.mp4"
+            "https://gcdn.picsart.com/media-engine/46440ca3-7390-404c-86da-7301dfa11acb.mp4"
+            "https://gcdn.picsart.com/media-engine/ffb407ff-b944-4e7b-b2af-3d9979529bb9.mp4"
+            "https://gcdn.picsart.com/media-engine/7654c995-9b2a-4470-b145-fdf7b039a700.mp4"
+            "https://gcdn.picsart.com/media-engine/baf6a8b2-beee-4321-93e8-4c941ae41ced.mp4"
+            "https://gcdn.picsart.com/media-engine/c4df1fb9-8aa5-445d-ae56-92894c61501b.mp4"
+            "https://gcdn.picsart.com/media-engine/6771525c-f865-4587-b9be-5c31aed1818b.mp4"
+            "https://gcdn.picsart.com/media-engine/5cd697ef-7057-43b0-ab3e-aafc8db236ee.mp4"
+            "https://gcdn.picsart.com/media-engine/181f5e81-0269-4e3a-9680-ea4fb2882410.mp4"
+            "https://gcdn.picsart.com/media-engine/9f70a5bb-f824-4ae8-a7ed-a5d889ebb3c8.mp4"
+            "https://gcdn.picsart.com/media-engine/fecf030b-3ed1-44b6-8e3e-8a3f69dacbd9.mp4"
+            "https://gcdn.picsart.com/media-engine/80325e5c-05fc-4b1b-8512-22cbece5f996.mp4"
+          )
+          : > parts/concat.txt
+          i=1
+          for url in "${urls[@]}"; do
+            f=$(printf "parts/part_%02d.mp4" "$i")
+            curl -L --fail --retry 4 --retry-delay 2 "$url" -o "$f"
+            ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$f"
+            printf "file '%s'\n" "$(basename "$f")" >> parts/concat.txt
+            i=$((i+1))
+          done
+
+      - name: Concatenate one-hour master
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd parts
+          ffmpeg -hide_banner -y -f concat -safe 0 -i concat.txt -c copy -movflags +faststart ../SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4
+          cd ..
+          duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4)
+          echo "duration=$duration"
+          python3 - <<'PY'
+          import subprocess, sys
+          p="SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4"
+          d=float(subprocess.check_output(["ffprobe","-v","error","-show_entries","format=duration","-of","default=nw=1:nk=1",p], text=True).strip())
+          if not (3598 <= d <= 3602):
+              raise SystemExit(f"Unexpected duration: {d}")
+          streams=subprocess.check_output(["ffprobe","-v","error","-show_entries","stream=codec_type","-of","csv=p=0",p], text=True).split()
+          if "video" not in streams or "audio" not in streams:
+              raise SystemExit(f"Missing stream: {streams}")
+          print("QA OK", d, streams)
+          PY
+          ls -lh SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4
+
+      - name: Upload final master
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOULUME_EP05_JAPAN_1H_SOUL_FINAL
+          path: SOULUME_EP05_JAPAN_1H_SOUL_FINAL.mp4
+          retention-days: 1
+          compression-level: 0
