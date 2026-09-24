@@ -1,0 +1,28 @@
+name: Build SOULUME E07 60m audio
+
+on:
+  push:
+    branches:
+      - tmp-soulume-e07-audio
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download exact masters
+        run: |
+          set -euxo pipefail
+          curl -L --fail --retry 3 -o A.mp4 "https://gcdn.picsart.com/media-engine/bccbcf58-c597-4d8d-aaf1-a177b1f58c79.mp4"
+          curl -L --fail --retry 3 -o B.mp4 "https://gcdn.picsart.com/media-engine/a7cec853-e987-46b2-90b4-9a95ebdc99d7.mp4"
+      - name: Concatenate without re-encoding
+        run: |
+          set -euxo pipefail
+          printf "file '%s'\n" A.mp4 B.mp4 A.mp4 B.mp4 A.mp4 B.mp4 > concat.txt
+          ffmpeg -hide_banner -y -f concat -safe 0 -i concat.txt -map 0:a:0 -c:a copy SOULUME_E07_Japan_Zen_60MIN_ORIGINAL.m4a
+          ffprobe -hide_banner -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 SOULUME_E07_Japan_Zen_60MIN_ORIGINAL.m4a
+      - name: Upload final audio
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOULUME_E07_Japan_Zen_60MIN_ORIGINAL
+          path: SOULUME_E07_Japan_Zen_60MIN_ORIGINAL.m4a
+          if-no-files-found: error
