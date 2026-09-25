@@ -101,13 +101,7 @@ jobs:
           } > SOULUME_EP07_QA_REPORT.txt
 
           DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 SOULUME_EP07_MASTER_FINAL.mp4)
-          python3 - "$DURATION" <<'PY'
-import sys
-d=float(sys.argv[1])
-if not (7199.0 <= d <= 7200.5):
-    raise SystemExit(f"FAIL duration: {d}")
-print(f"PASS duration: {d:.3f}s")
-PY
+          awk -v d="$DURATION" 'BEGIN { if (d < 7199.0 || d > 7200.5) exit 1; printf "PASS duration: %.3fs\n", d }' | tee -a SOULUME_EP07_QA_REPORT.txt
 
           ffmpeg -v error -i SOULUME_EP07_MASTER_FINAL.mp4 -f null - 2> decode_errors.txt
           if [ -s decode_errors.txt ]; then
