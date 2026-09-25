@@ -1,0 +1,56 @@
+name: SOULUME EP07 ADOBE UPLOAD
+
+on:
+  push:
+    branches:
+      - soulume-ep07-render
+    paths:
+      - ".github/workflows/soulume-ep07-adobe-upload.yml"
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: Download rendered master artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: SOULUME_EP07_MASTER_FINAL
+          path: artifact
+          run-id: 36180702755
+          github-token: ${{ github.token }}
+
+      - name: Verify and split master
+        run: |
+          set -euo pipefail
+          MASTER="artifact/SOULUME_EP07_MASTER_FINAL.mp4"
+          test -f "$MASTER"
+          test "$(stat -c%s "$MASTER")" = "191963334"
+          mkdir blocks
+          split -b 52428800 -d -a 2 "$MASTER" blocks/block_
+          test "$(find blocks -type f | wc -l)" = "4"
+
+      - name: Upload four Adobe blocks
+        shell: bash
+        run: |
+          set -euo pipefail
+          URLS=(
+            'https://at.adobe.com/NJxCO69QD4R5AwtK'
+            'https://at.adobe.com/IkleIWPVCl72ktec'
+            'https://at.adobe.com/P8O4TZK1pHTgtFWk'
+            'https://at.adobe.com/JZuBQ65yENV2QvXA'
+          )
+          mapfile -t PARTS < <(find blocks -type f | sort)
+          test "${#URLS[@]}" = "4"
+          test "${#PARTS[@]}" = "4"
+          for i in "${!PARTS[@]}"; do
+            echo "Uploading Adobe block $((i+1))/4"
+            curl -L --fail --retry 5 --retry-all-errors -X PUT \
+              -H 'Content-Type: application/octet-stream' \
+              --data-binary "@${PARTS[$i]}" "${URLS[$i]}"
+          done
+          echo ADOBE_BLOCK_UPLOAD_COMPLETE
