@@ -1,0 +1,155 @@
+name: SOULUME EP07 FINAL RENDER
+
+on:
+  push:
+    branches:
+      - soulume-ep07-render
+    paths:
+      - ".github/workflows/soulume-ep07-final-render.yml"
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg unzip curl
+
+      - name: Download approved frames and approved audio core
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 -o frames.zip "https://at.adobe.com/5at9S6vQ0ZhBI5nb"
+          mkdir -p frames
+          unzip -q frames.zip -d frames
+          test "$(find frames -maxdepth 1 -name 'frame_*.jpg' | wc -l)" = "10"
+
+          curl -L --fail --retry 3 -o core.mp4 "https://gcdn.picsart.com/media-engine/88596b11-d262-4106-b516-d9792eb88316.mp4"
+          ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels -of default=nw=1 core.mp4
+
+      - name: Build exact 2-hour visual timeline
+        run: |
+          set -euo pipefail
+          cat > slides.txt <<'EOF'
+          file 'frames/frame_01.jpg'
+          duration 25
+          file 'frames/frame_02.jpg'
+          duration 30
+          file 'frames/frame_03.jpg'
+          duration 35
+          file 'frames/frame_04.jpg'
+          duration 25
+          file 'frames/frame_05.jpg'
+          duration 40
+          file 'frames/frame_06.jpg'
+          duration 30
+          file 'frames/frame_07.jpg'
+          duration 25
+          file 'frames/frame_08.jpg'
+          duration 35
+          file 'frames/frame_09.jpg'
+          duration 25
+          file 'frames/frame_10.jpg'
+          duration 30
+          file 'frames/frame_10.jpg'
+          duration 6900
+          file 'frames/frame_10.jpg'
+          EOF
+
+          ffmpeg -hide_banner -y \
+            -f concat -safe 0 -i slides.txt \
+            -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:black,fps=1,fade=t=out:st=7195:d=5" \
+            -t 7200 \
+            -c:v libx264 -preset veryfast -crf 20 -tune stillimage -pix_fmt yuv420p \
+            visual.mp4
+
+      - name: Build exact 2-hour audio with soft ending
+        run: |
+          set -euo pipefail
+          ffmpeg -hide_banner -y \
+            -stream_loop -1 -i core.mp4 \
+            -map 0:a:0 -vn -t 7200 \
+            -af "aresample=48000,afade=t=out:st=7190:d=10" \
+            -ac 2 -c:a aac -b:a 192k \
+            audio.m4a
+
+      - name: Mux canonical master
+        run: |
+          set -euo pipefail
+          ffmpeg -hide_banner -y \
+            -i visual.mp4 -i audio.m4a \
+            -map 0:v:0 -map 1:a:0 \
+            -c copy -t 7200 -movflags +faststart \
+            SOULUME_EP07_MASTER_FINAL.mp4
+
+      - name: Technical QA
+        run: |
+          set -euo pipefail
+          {
+            echo "SOULUME EP07 QA"
+            echo "================"
+            echo
+            ffprobe -v error -show_entries format=duration,size,bit_rate -show_entries stream=index,codec_type,codec_name,width,height,r_frame_rate,sample_rate,channels -of json SOULUME_EP07_MASTER_FINAL.mp4
+          } > SOULUME_EP07_QA_REPORT.txt
+
+          DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 SOULUME_EP07_MASTER_FINAL.mp4)
+          python3 - "$DURATION" <<'PY'
+import sys
+d=float(sys.argv[1])
+if not (7199.0 <= d <= 7200.5):
+    raise SystemExit(f"FAIL duration: {d}")
+print(f"PASS duration: {d:.3f}s")
+PY
+
+          ffmpeg -v error -i SOULUME_EP07_MASTER_FINAL.mp4 -f null - 2> decode_errors.txt
+          if [ -s decode_errors.txt ]; then
+            echo "DECODE ERRORS:" >> SOULUME_EP07_QA_REPORT.txt
+            cat decode_errors.txt >> SOULUME_EP07_QA_REPORT.txt
+            exit 1
+          else
+            echo "PASS full decode" >> SOULUME_EP07_QA_REPORT.txt
+          fi
+
+          ffmpeg -hide_banner -ss 5 -i SOULUME_EP07_MASTER_FINAL.mp4 -t 7180 \
+            -map 0:a:0 -af "silencedetect=noise=-50dB:d=2" -f null - \
+            2> silence_scan.txt || true
+          echo >> SOULUME_EP07_QA_REPORT.txt
+          echo "Silence scan (-50 dB, >=2 sec, after opening fade):" >> SOULUME_EP07_QA_REPORT.txt
+          grep -E "silence_(start|end)" silence_scan.txt >> SOULUME_EP07_QA_REPORT.txt || echo "No >=2s silence detected" >> SOULUME_EP07_QA_REPORT.txt
+
+          mkdir -p qa_frames
+          for t in 5 30 70 120 230 290 301 1800 3600 5400 7194; do
+            ffmpeg -hide_banner -loglevel error -ss "$t" -i SOULUME_EP07_MASTER_FINAL.mp4 -frames:v 1 -q:v 3 "qa_frames/frame_${t}.jpg"
+          done
+
+          : > audio_samples.txt
+          for t in 5 1800 3600 5400 7180; do
+            echo "=== AUDIO SAMPLE ${t}s ===" >> audio_samples.txt
+            ffmpeg -hide_banner -ss "$t" -i SOULUME_EP07_MASTER_FINAL.mp4 -t 8 -map 0:a:0 -af volumedetect -f null - 2>> audio_samples.txt || true
+          done
+
+          sha256sum SOULUME_EP07_MASTER_FINAL.mp4 > SHA256.txt
+          cat SHA256.txt >> SOULUME_EP07_QA_REPORT.txt
+          ls -lh SOULUME_EP07_MASTER_FINAL.mp4 >> SOULUME_EP07_QA_REPORT.txt
+
+      - name: Upload final master and QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOULUME_EP07_MASTER_FINAL
+          path: |
+            SOULUME_EP07_MASTER_FINAL.mp4
+            SOULUME_EP07_QA_REPORT.txt
+            SHA256.txt
+            audio_samples.txt
+            silence_scan.txt
+            qa_frames/
+          compression-level: 0
+          retention-days: 3
