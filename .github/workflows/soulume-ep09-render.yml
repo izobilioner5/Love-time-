@@ -41,5 +41,5 @@ jobs:
           TAG: soulume-ep09-20260928
         run: |
           set -euxo pipefail
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --target "$GITHUB_SHA" --title "SOULUME EP09 Macau master" --notes "Automated final render for SOULUME Episode 09 Macau."
-          gh release upload "$TAG" SOULUME_EP09_MACAU_MASTER_FINAL.mp4 --clobber
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "SOULUME EP09 Macau master" --notes "Automated final render for SOULUME Episode 09 Macau."
+          gh release upload "$TAG" SOULUME_EP09_MACAU_MASTER_FINAL.mp4 --repo "$GITHUB_REPOSITORY" --clobber
