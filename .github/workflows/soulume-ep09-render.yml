@@ -1,4 +1,4 @@
-name: Upload SOULUME EP09 Macau thumbnail
+name: Compress SOULUME EP09 Macau for upload
 
 on:
   push:
@@ -9,19 +9,35 @@ permissions:
   contents: write
 
 jobs:
-  upload-thumbnail:
+  compress:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 45
     steps:
-      - name: Download approved thumbnail
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Download master
         run: |
           set -euxo pipefail
-          curl -L --fail --retry 3 -o SOULUME_EP09_THUMBNAIL.jpg "https://at.adobe.com/LkdKmhnIpWhlwIHG"
-          file SOULUME_EP09_THUMBNAIL.jpg
-      - name: Add thumbnail to release
+          curl -L --fail --retry 3 -o master.mp4 "https://github.com/izobilioner5/Love-time-/releases/download/soulume-ep09-20260928/SOULUME_EP09_MACAU_MASTER_FINAL.mp4"
+
+      - name: Encode upload-ready master under 500 MB
+        run: |
+          set -euxo pipefail
+          ffmpeg -hide_banner -y -i master.mp4 \
+            -c:v libx264 -preset medium -b:v 1900k -maxrate 2100k -bufsize 4200k \
+            -pix_fmt yuv420p -c:a aac -b:a 128k -ar 48000 \
+            -movflags +faststart \
+            SOULUME_EP09_MACAU_UPLOAD_READY.mp4
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 SOULUME_EP09_MACAU_UPLOAD_READY.mp4
+          test $(stat -c%s SOULUME_EP09_MACAU_UPLOAD_READY.mp4) -lt 500000000
+
+      - name: Upload compressed master to release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: soulume-ep09-20260928
         run: |
           set -euxo pipefail
-          gh release upload "$TAG" SOULUME_EP09_THUMBNAIL.jpg --repo "$GITHUB_REPOSITORY" --clobber
+          gh release upload "$TAG" SOULUME_EP09_MACAU_UPLOAD_READY.mp4 --repo "$GITHUB_REPOSITORY" --clobber
