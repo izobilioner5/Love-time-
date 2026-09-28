@@ -27,7 +27,7 @@ jobs:
         run: |
           set -euxo pipefail
           ffmpeg -hide_banner -y -i master.mp4 \
-            -c:v libx264 -preset medium -b:v 1900k -maxrate 2100k -bufsize 4200k \
+            -c:v libx264 -preset ultrafast -b:v 1900k -maxrate 2100k -bufsize 4200k \
             -pix_fmt yuv420p -c:a aac -b:a 128k -ar 48000 \
             -movflags +faststart \
             SOULUME_EP09_MACAU_UPLOAD_READY.mp4
