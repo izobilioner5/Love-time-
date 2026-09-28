@@ -1,0 +1,40 @@
+name: Build SOULUME EP09 Macau
+
+on:
+  push:
+    branches:
+      - soulume-ep09-render
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download rendered parts
+        run: |
+          set -euxo pipefail
+          curl -L --fail --retry 3 -o part01.mp4 "https://gcdn.picsart.com/media-engine/5fe790bc-0eba-40ad-95ab-58e9f2d3521e.mp4"
+          curl -L --fail --retry 3 -o part02.mp4 "https://gcdn.picsart.com/media-engine/b4c01183-6e77-466c-8c4a-b8c04d578f25.mp4"
+          curl -L --fail --retry 3 -o part03.mp4 "https://gcdn.picsart.com/media-engine/2514f6d2-b3aa-4c4a-bd68-4111270d5015.mp4"
+          curl -L --fail --retry 3 -o part04.mp4 "https://gcdn.picsart.com/media-engine/bc3e0cbe-57fb-423c-aaf3-06399ddcec12.mp4"
+          curl -L --fail --retry 3 -o part05.mp4 "https://gcdn.picsart.com/media-engine/3e31158e-dcbe-4a7b-96a9-900fb8fae7a1.mp4"
+          curl -L --fail --retry 3 -o part06.mp4 "https://gcdn.picsart.com/media-engine/f5855ab7-a555-4d3a-9caa-deed04ff3349.mp4"
+
+      - name: Concatenate without re-encoding
+        run: |
+          set -euxo pipefail
+          printf "file '%s'\n" part01.mp4 part02.mp4 part03.mp4 part04.mp4 part05.mp4 part06.mp4 > concat.txt
+          ffmpeg -hide_banner -y -f concat -safe 0 -i concat.txt -c copy SOULUME_EP09_MACAU_MASTER_FINAL.mp4
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 SOULUME_EP09_MACAU_MASTER_FINAL.mp4
+
+      - name: Publish render as release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: soulume-ep09-20260928
+        run: |
+          set -euxo pipefail
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --target "$GITHUB_SHA" --title "SOULUME EP09 Macau master" --notes "Automated final render for SOULUME Episode 09 Macau."
+          gh release upload "$TAG" SOULUME_EP09_MACAU_MASTER_FINAL.mp4 --clobber
